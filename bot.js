@@ -6,7 +6,11 @@ const fs2 = require("fs")
 const path = require('path');
 const chalk = require('chalk');
 const { sleep } = require('./utils');
-const { BOT_TOKEN } = require('./token');
+let BOT_TOKEN = process.env.BOT_TOKEN;
+if (!BOT_TOKEN) {
+  try { BOT_TOKEN = require('./token').BOT_TOKEN; } catch (e) {}
+}
+if (!BOT_TOKEN) throw new Error('BOT_TOKEN is not set (set BOT_TOKEN env variable)');
 const { autoLoadPairs } = require('./autoload');
 const axios = require("axios")
 
@@ -328,7 +332,7 @@ bot.on('message', async (msg) => {
         reply_markup: {
           inline_keyboard: [
             [{ text: '📢 Channel 1', url: 'https://t.me/anonymousworld02' }],
-            [{ text: '📢 Channel 2', url: 'https://t.me/anonymousworld02 }],
+            [{ text: '📢 Channel 2', url: 'https://t.me/anonymousworld02' }],
             [{ text: '👥 Group', url: 'https://t.me/skchatzone' }],
             [{ text: '✅ I have joined', callback_data: 'check_join' }]
           ]

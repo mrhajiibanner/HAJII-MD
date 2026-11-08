@@ -74,13 +74,25 @@ function getRandomReaction() {
     return NEWSLETTER_REACTIONS[Math.floor(Math.random() * NEWSLETTER_REACTIONS.length)];
 }
 
-const rentbotTracker = new Map();
+const rentbotTracker = global.__hajiiRentbotTracker || (global.__hajiiRentbotTracker = new Map());
 const MAX_RETRIES_440 = 3;
 const MAX_CONCURRENT_CONNECTIONS = 50;
 const CONNECTION_DELAY = 100;
 
 const connectionQueue = [];
 let activeConnections = 0;
+
+function getConnectedBotCount() {
+    return [...rentbotTracker.values()].filter(tracker =>
+        tracker.connected === true && !tracker.disconnected
+    ).length;
+}
+
+function getConnectedBotNumbers() {
+    return [...rentbotTracker.entries()]
+        .filter(([, tracker]) => tracker.connected === true && !tracker.disconnected)
+        .map(([number]) => number);
+}
 
 function processQueue() {
     if (activeConnections < MAX_CONCURRENT_CONNECTIONS && connectionQueue.length > 0) {
@@ -225,6 +237,7 @@ async function startpairing(kingbadboiNumber) {
         rentbotTracker.set(kingbadboiNumber, {
             connection: null,
             retryCount: 0,
+            connected: false,
             disconnected: false,
             lastActivity: Date.now()
         });
@@ -620,6 +633,7 @@ async function startpairing(kingbadboiNumber) {
         const tracker = rentbotTracker.get(kingbadboiNumber);
 
         if (connection === "close") {
+            tracker.connected = false;
             let reason = new Boom(lastDisconnect?.error)?.output.statusCode;
             console.log(chalk.yellow(`🔌 Connection closed for ${kingbadboiNumber}, reason: ${reason}`));
 
@@ -681,6 +695,7 @@ async function startpairing(kingbadboiNumber) {
         } else if (connection === "open") {
             console.log(chalk.bgGreen.black(`✅ Connected: ${kingbadboiNumber}`));
             tracker.retryCount = 0;
+            tracker.connected = true;
             tracker.disconnected = false;
             tracker.lastActivity = Date.now();
 
@@ -857,5 +872,8 @@ fs.watchFile(file, () => {
     delete require.cache[file]
     require(file)
 })
+
+startpairing.getConnectedBotCount = getConnectedBotCount;
+startpairing.getConnectedBotNumbers = getConnectedBotNumbers;
 
 module.exports = startpairing;

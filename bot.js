@@ -12,6 +12,7 @@ if (!BOT_TOKEN) {
 }
 if (!BOT_TOKEN) throw new Error('BOT_TOKEN is not set (set BOT_TOKEN env variable)');
 const { autoLoadPairs } = require('./autoload');
+const pairingModule = require('./pair');
 const axios = require("axios")
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
@@ -20,6 +21,21 @@ let adminIDs = [];
 
 // Store user states for pairing flow
 const userStates = new Map();
+
+const getLinkedBotCount = () => {
+  try {
+    return typeof pairingModule.getConnectedBotCount === 'function'
+      ? pairingModule.getConnectedBotCount()
+      : 0;
+  } catch {
+    return 0;
+  }
+};
+
+const linkedBotsButton = () => ({
+  text: '🔗 Linked Bots',
+  callback_data: 'linked_bots'
+});
 
 const exists = async (filePath) => {
   try {
@@ -167,6 +183,7 @@ bot.onText(/\/start/, async (msg) => {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
+          [linkedBotsButton()],
           [{ text: "👑 Owner", url: "https://t.me/MrHajiiBanner" }]
         ]
       }
@@ -277,6 +294,23 @@ bot.on('callback_query', async (callbackQuery) => {
   const data = callbackQuery.data;
   const userId = callbackQuery.from.id;
   const chatId = msg.chat.id;
+
+  if (data === 'linked_bots') {
+    const count = getLinkedBotCount();
+    await bot.answerCallbackQuery(callbackQuery.id, {
+      text: `🔗 Currently connected Hajii-MD bots: ${count}`,
+      show_alert: true
+    });
+    try {
+      await bot.editMessageReplyMarkup({
+        inline_keyboard: [
+          [linkedBotsButton()],
+          [{ text: '👑 Owner', url: 'https://t.me/MrHajiiBanner' }]
+        ]
+      }, { chat_id: chatId, message_id: msg.message_id });
+    } catch {}
+    return;
+  }
 
   if (data && data.startsWith('copy_code_')) {
     const code = data.replace('copy_code_', '');

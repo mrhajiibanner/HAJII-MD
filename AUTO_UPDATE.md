@@ -1,6 +1,6 @@
 # HAJII-MD automatic updates
 
-The process checks the private `mrhajiibanner/HAJII-MD` repository for new commits and restarts itself when a new commit is available. Restarting the main process reconnects all paired bots and loads the updated commands.
+The process checks the private `mrhajiibanner/HAJII-MD` repository for new commits. When a new commit is found, the command handler is reloaded in-place, so all already-connected bots receive the new commands without pairing again.
 
 Set the following environment variable in the hosting panel (never commit the token to the repository):
 
@@ -14,8 +14,10 @@ Optional variables:
 AUTO_UPDATE_REPO=mrhajiibanner/HAJII-MD
 AUTO_UPDATE_BRANCH=main
 AUTO_UPDATE_INTERVAL_MS=300000
+# Only set this if a full process restart is specifically required.
+AUTO_UPDATE_RESTART=false
 ```
 
 The updater is intentionally disabled when the deployment has no `.git` directory or no token. It uses `git reset --hard origin/main` only for tracked source files; pairing sessions and runtime settings remain untracked and are not removed.
 
-After changing code or configuration, push the commit to `main`. Each connected-bot process will detect it on its next check, update, restart, and auto-load its saved pairings.
+After changing code or configuration, push the commit to `main`. Each connected-bot process will detect it on its next check and live-reload `drenox.js` while keeping all WhatsApp sockets connected. `AUTO_UPDATE_RESTART=true` is available as a fallback for deployments that require a full restart, but it may temporarily disconnect sockets.

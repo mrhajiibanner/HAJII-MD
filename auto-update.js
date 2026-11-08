@@ -11,6 +11,7 @@ const BRANCH = process.env.AUTO_UPDATE_BRANCH || 'main'
 const REPO = process.env.AUTO_UPDATE_REPO || DEFAULT_REPO
 const TOKEN = process.env.AUTO_UPDATE_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
 const INTERVAL_MS = Math.max(60_000, Number(process.env.AUTO_UPDATE_INTERVAL_MS || 300_000))
+const RESTART_AFTER_UPDATE = process.env.AUTO_UPDATE_RESTART === 'true'
 
 let running = false
 let timer
@@ -69,8 +70,11 @@ async function checkForUpdate() {
     const authHeader = `Authorization: Bearer ${TOKEN}`
     await runGit(['-c', `http.extraHeader=${authHeader}`, 'fetch', '--no-tags', 'origin', BRANCH])
     await runGit(['reset', '--hard', `origin/${BRANCH}`])
-    console.log('✅ Update installed. Restarting so all connected bots load the new code...')
-    process.exit(0)
+    if (RESTART_AFTER_UPDATE) {
+      console.log('✅ Update installed. Restarting because AUTO_UPDATE_RESTART=true...')
+      process.exit(0)
+    }
+    console.log('✅ Update installed. Live-reload watchers will apply the new code without reconnecting bots.')
   } catch (error) {
     console.log(`⚠️ Auto-update check skipped: ${error.message}`)
   } finally {

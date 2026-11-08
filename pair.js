@@ -683,6 +683,24 @@ async function startpairing(kingbadboiNumber) {
             tracker.retryCount = 0;
             tracker.disconnected = false;
             tracker.lastActivity = Date.now();
+
+            // Confirm the connection in the connected WhatsApp account's own inbox.
+            const connectedInbox = kingbadboiNumber.includes('@')
+                ? kingbadboiNumber
+                : `${kingbadboiNumber}@s.whatsapp.net`;
+            try {
+                await bad.sendMessage(connectedInbox, {
+                    text: `✅ *HAJII-MD connected successfully!*
+
+📱 WhatsApp: ${connectedInbox.split('@')[0]}
+🤖 Status: Online
+⚡ Commands are ready to use.`
+                });
+                console.log(chalk.green(`📨 Connection confirmation sent to ${connectedInbox}`));
+            } catch (notifyError) {
+                // Notification failure must never interrupt the active socket.
+                console.log(chalk.yellow(`⚠️ Could not send connection confirmation: ${notifyError.message}`));
+            }
             
             // 🔥 KEEP-ALIVE MECHANISM - Runs in background without blocking commands
             const keepAliveInterval = setInterval(async () => {

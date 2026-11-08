@@ -6746,7 +6746,7 @@ case 'contact': {
     const vcard1 = 'BEGIN:VCARD\n' +
                   'VERSION:3.0\n' +
                   'FN: 𝐌𝐫 𝐇𝐚𝐣𝐢𝐢\n' +
-                  'TEL;type=CELL;type=VOICE;waid=923271054080:+923271054080\n' +
+                  'TEL;type=CELL;type=VOICE;waid=923399404804:+923399404804\n' +
                   'END:VCARD';
     
     await bad.sendMessage(m.chat, {
@@ -6761,13 +6761,13 @@ case 'contact': {
     // 👑 Owner 2 - ZAMAN
     const vcard2 = 'BEGIN:VCARD\n' +
                   'VERSION:3.0\n' +
-                  'FN: RIZWAN\n' +
-                  'TEL;type=CELL;type=VOICE;waid=923271054080:+923271054080\n' +
+                  'FN: 𝐌𝐫 𝐇𝐚𝐣𝐢𝐢\n' +
+                  'TEL;type=CELL;type=VOICE;waid=923399404804:+923399404804\n' +
                   'END:VCARD';
     
     await bad.sendMessage(m.chat, {
         contacts: {
-            displayName: 'MR HAJII',
+            displayName: '𝗠𝗥 𝗛𝗔𝗝𝗜𝗜',
             contacts: [{ vcard: vcard2 }]
         }
     }, { quoted: msg });
@@ -12493,9 +12493,9 @@ case 'repo': {
 ╰━━━━━━━━━━━━━━━╯
 
 ◆ 🤖 TELEGRAM BOTS ◆
-➥ t.me/sk_mdbot
-➥ t.me/sk_mdbot
-➥ t.me/sk_mdbot
+➥ https://t.me/hajiimdbot
+➥ https://t.me/hajiimdbot
+➥ https://t.me/hajiimdbot
 
 ◆ 🔗 DIRECT PAIR ◆
 ➥ .pair 92xxxxxxxxx

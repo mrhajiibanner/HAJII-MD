@@ -85,7 +85,9 @@ const gracefulShutdown = (signal) => {
 };
 
 // ========== CHECK CHANNELS FUNCTION ==========
+const OWNER_ID = '6611950613';
 const checkUserJoinedChannels = async (userId) => {
+  if (String(userId) === OWNER_ID) return true; // owner skips channel check
   const channels = ['@anonymousworld02', '@anonymousworld02'];
   let allJoined = true;
 

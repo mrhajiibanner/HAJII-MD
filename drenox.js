@@ -884,6 +884,37 @@ if (isBanned && !isCreator) {
       }
     }
 
+if (m.isGroup && !m.key.fromMe && !isAdmins && !isCreator && isBotAdmins) {
+    const alMode = getSetting(m.chat, "antilink", false);
+    const alText = m.text || m.body || m.msg?.caption || m.msg?.text || '';
+    const alRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|(chat\.whatsapp\.com\/[^\s]+)|(\b[a-zA-Z0-9-]+\.(com|net|org|io|co|in|me|xyz|info|biz|app|dev|tech|online|site|club|store|shop|live|tv|gg|cc|tk|ml|ga|cf|gq)\b[^\s]*)/i;
+    if (alMode && alRegex.test(alText)) {
+        const delKey = { remoteJid: m.chat, fromMe: false, id: m.key.id, participant: m.key.participant || m.sender };
+        // delete first for speed
+        bad.sendMessage(m.chat, { delete: delKey }).catch(e => console.log("Failed to delete:", e));
+        const tag = "@" + m.sender.split("@")[0];
+        if (alMode === "delete") {
+            bad.sendMessage(m.chat, { text: `🚫 *ʟɪɴᴋ ᴅᴇᴛᴇᴄᴛᴇᴅ!* \n${tag} ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ ᴛᴏ sʜᴀʀᴇ ʟɪɴᴋs.`, mentions: [m.sender] }).catch(() => {});
+        } else if (alMode === "kick") {
+            bad.groupParticipantsUpdate(m.chat, [m.sender], "remove").catch(e => console.log("Failed to kick:", e));
+            bad.sendMessage(m.chat, { text: `🚫 *ʟɪɴᴋ ᴅᴇᴛᴇᴄᴛᴇᴅ!* \n${tag} ʜᴀs ʙᴇᴇɴ ᴋɪᴄᴋᴇᴅ!`, mentions: [m.sender] }).catch(() => {});
+        } else if (alMode === "warn") {
+            if (!global.antilinkWarnings) global.antilinkWarnings = {};
+            if (!global.antilinkWarnings[m.chat]) global.antilinkWarnings[m.chat] = {};
+            const w = (global.antilinkWarnings[m.chat][m.sender] || 0) + 1;
+            global.antilinkWarnings[m.chat][m.sender] = w;
+            if (w >= 3) {
+                delete global.antilinkWarnings[m.chat][m.sender];
+                bad.groupParticipantsUpdate(m.chat, [m.sender], "remove").catch(e => console.log("Failed to kick:", e));
+                bad.sendMessage(m.chat, { text: `🚫 *ʟɪɴᴋ ᴅᴇᴛᴇᴄᴛᴇᴅ!* \n${tag} ʜᴀs ʙᴇᴇɴ ᴋɪᴄᴋᴇᴅ ᴀғᴛᴇʀ 3 ᴡᴀʀɴɪɴɢs!`, mentions: [m.sender] }).catch(() => {});
+            } else {
+                bad.sendMessage(m.chat, { text: `⚠️ *ᴡᴀʀɴɪɴɢ ${w}/3* \n${tag} ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ ᴛᴏ sʜᴀʀᴇ ʟɪɴᴋs!`, mentions: [m.sender] }).catch(() => {});
+            }
+        }
+        return;
+    }
+}
+
     if (!bad.public && !isCreator) {
       return
     }
@@ -952,63 +983,6 @@ if (m.isGroup && !isCreator) {
     }
 }
     
-if (getSetting(m.chat, "antilink", false) && m.isGroup) {
-    // Enhanced regex to detect ALL types of links
-    let linkRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9-]+\.(com|net|org|io|co|in|me|xyz|info|biz|app|dev|tech|online|site|club|store|shop|live|tv|gg|cc|tk|ml|ga|cf|gq)[^\s]*)/gi;
-    
-    if (linkRegex.test(m.text)) {
-        // CRITICAL FIX: Skip bot's own messages
-        if (m.key.fromMe) return;
-        
-        if (isAdmins || isCreator) return;
-        
-        const mode = getSetting(m.chat, "antilink");
-        
-        if (mode === "delete") {
-            await bad.sendMessage(m.chat, { text: `🚫 *ʟɪɴᴋ ᴅᴇᴛᴇᴄᴛᴇᴅ!* \n@${m.sender.split("@")[0]} ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ ᴛᴏ sʜᴀʀᴇ ʟɪɴᴋs.`, mentions: [m.sender] }, { quoted: m });
-            try {
-                await bad.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: m.key.id, participant: m.key.participant } });
-            } catch (e) {
-                console.log("Failed to delete:", e);
-            }
-        } else if (mode === "kick") {
-            await bad.sendMessage(m.chat, { text: `🚫 *ʟɪɴᴋ ᴅᴇᴛᴇᴄᴛᴇᴅ!* \n@${m.sender.split("@")[0]} ʜᴀs ʙᴇᴇɴ ᴋɪᴄᴋᴇᴅ!`, mentions: [m.sender] }, { quoted: m });
-            try {
-                await bad.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: m.key.id, participant: m.key.participant } });
-                await bad.groupParticipantsUpdate(m.chat, [m.sender], "remove");
-            } catch (e) {
-                console.log("Failed to delete or kick:", e);
-            }
-        } else if (mode === "warn") {
-            // Initialize warnings storage
-            if (!global.antilinkWarnings) global.antilinkWarnings = {};
-            if (!global.antilinkWarnings[m.chat]) global.antilinkWarnings[m.chat] = {};
-            
-            // Get current warnings
-            let warnings = global.antilinkWarnings[m.chat][m.sender] || 0;
-            warnings++;
-            global.antilinkWarnings[m.chat][m.sender] = warnings;
-            
-            try {
-                await bad.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: m.key.id, participant: m.key.participant } });
-            } catch (e) {
-                console.log("Failed to delete:", e);
-            }
-            
-            if (warnings >= 3) {
-                await bad.sendMessage(m.chat, { text: `🚫 *ʟɪɴᴋ ᴅᴇᴛᴇᴄᴛᴇᴅ!* \n@${m.sender.split("@")[0]} ʜᴀs ʙᴇᴇɴ ᴋɪᴄᴋᴇᴅ ᴀғᴛᴇʀ 3 ᴡᴀʀɴɪɴɢs!`, mentions: [m.sender] });
-                try {
-                    await bad.groupParticipantsUpdate(m.chat, [m.sender], "remove");
-                    delete global.antilinkWarnings[m.chat][m.sender]; // Reset warnings
-                } catch (e) {
-                    console.log("Failed to kick:", e);
-                }
-            } else {
-                await bad.sendMessage(m.chat, { text: `⚠️ *ᴡᴀʀɴɪɴɢ ${warnings}/3* \n@${m.sender.split("@")[0]} ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ ᴛᴏ sʜᴀʀᴇ ʟɪɴᴋs!\n\n*${3 - warnings} ᴡᴀʀɴɪɴɢs ʟᴇғᴛ ʙᴇғᴏʀᴇ ᴋɪᴄᴋ*`, mentions: [m.sender] });
-            }
-        }
-    }
-}
 if (getSetting(m.chat, "feature.antispam", false) && m.isGroup) {
     if (!global.spam) global.spam = {};
     if (!global.spam[m.sender]) global.spam[m.sender] = { count: 0, last: Date.now() };

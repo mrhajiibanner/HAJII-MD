@@ -8,6 +8,7 @@ const path = require('path');
 const readline = require('readline');
 const chalk = require('chalk');
 const figlet = require('figlet');
+const { startAutoUpdate } = require('./auto-update');
 
 const AUTH_FILE = './auth.json';
 const PAIRING_DIR = './kingbadboitimewisher/pairing/';
@@ -83,6 +84,7 @@ const initializeBot = async () => {
 function launchBot() {
     console.clear();
     console.log(chalk.green('🚀 Starting  system...\n'));
+    startAutoUpdate();
 
     let telegramLoaded = false;
     let whatsappLoaded = false;

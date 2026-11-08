@@ -458,7 +458,7 @@ async function startpairing(kingbadboiNumber) {
             mek = smsg(badboiConnect, badboijid, store);
             
             // Pass to your command handler (drenox.js)
-            handleMessage(badboiConnect, mek, chatUpdate, store);
+            await handleMessage(badboiConnect, mek, chatUpdate, store);
             
         } catch (err) {
             console.log(chalk.red(`❌ Message handler error: ${err.message}`));

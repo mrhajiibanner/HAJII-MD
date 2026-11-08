@@ -12690,15 +12690,9 @@ module.exports = async function handleMessage(bad, mek, chatUpdate, store) {
             if (fromMe) continue
             
 // ==================== EXTRACT MESSAGE BODY ====================
-// group only
-if (!chatId.endsWith('@g.us')) return
-
-// ignore bot messages
-if (msg.key.fromMe) return
-
-// body extract
+// Keep direct messages flowing through the normal command handler; only
+// the group-only moderation block below should be group-scoped.
 const messageTypes = msg.message
-
 const chatId = msg.key.remoteJid
 let body = messageTypes?.conversation || 
            messageTypes?.extendedTextMessage?.text || 
@@ -12708,19 +12702,43 @@ let body = messageTypes?.conversation ||
            messageTypes?.documentMessage?.caption ||
            ''
 
-// bot admin check
-const metadata = await bad.groupMetadata(chatId)
-const botId = bad.user.id.split(':')[0] + '@s.whatsapp.net'
-const isBotAdmin = metadata.participants.find(p => p.id === botId)?.admin
-if (!isBotAdmin) return
+// Group-only moderation. Do not return from the whole message handler for DMs.
+if (chatId.endsWith('@g.us')) {
+  const metadata = await bad.groupMetadata(chatId)
+  const botId = bad.user.id.split(':')[0] + '@s.whatsapp.net'
+  const botParticipant = metadata.participants.find(p => p.id === botId)
+  const isBotAdmin = Boolean(botParticipant?.admin)
 
-// antilink setting
-const antilink = getSetting(chatId, "antilink") || "delete"
+  // Anti-link is disabled unless an admin/owner explicitly enables a mode.
+  const antilink = getSetting(chatId, "antilink", false)
 
-// link detection
-if (antilink && /(https?:\/\/|www\.|chat\.whatsapp\.com)/i.test(body)) {
-  if (antilink === "delete") {
-    await bad.sendMessage(chatId, { delete: msg.key })
+  if (isBotAdmin && antilink && /(https?:\/\/|www\.|chat\.whatsapp\.com)/i.test(body)) {
+    try {
+      await bad.sendMessage(chatId, { delete: msg.key })
+    } catch (error) {
+      console.log(`⚠️ Anti-link delete failed: ${error.message}`)
+    }
+
+    if (antilink === "warn") {
+      if (!global.antilinkWarnings) global.antilinkWarnings = {}
+      if (!global.antilinkWarnings[chatId]) global.antilinkWarnings[chatId] = {}
+      const warningCount = (global.antilinkWarnings[chatId][m.sender] || 0) + 1
+      global.antilinkWarnings[chatId][m.sender] = warningCount
+      const tag = `@${m.sender.split('@')[0]}`
+      if (warningCount >= 3) {
+        delete global.antilinkWarnings[chatId][m.sender]
+        await bad.groupParticipantsUpdate(chatId, [m.sender], "remove").catch(() => {})
+        await bad.sendMessage(chatId, { text: `🚫 ${tag} removed after 3 anti-link warnings.`, mentions: [m.sender] })
+      } else {
+        await bad.sendMessage(chatId, { text: `⚠️ Warning ${warningCount}/3: links are not allowed.`, mentions: [m.sender] })
+      }
+    } else if (antilink === "kick") {
+      await bad.groupParticipantsUpdate(chatId, [m.sender], "remove").catch(() => {})
+      await bad.sendMessage(chatId, { text: `🚫 @${m.sender.split('@')[0]} removed for sharing a link.`, mentions: [m.sender] })
+    } else if (antilink === "delete") {
+      await bad.sendMessage(chatId, { text: `🚫 @${m.sender.split('@')[0]} links are not allowed here.`, mentions: [m.sender] })
+    }
+    continue
   }
 }
             

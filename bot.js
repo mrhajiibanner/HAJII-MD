@@ -88,7 +88,7 @@ const gracefulShutdown = (signal) => {
 const OWNER_ID = '6611950613';
 const checkUserJoinedChannels = async (userId) => {
   if (String(userId) === OWNER_ID) return true; // owner skips channel check
-  const channels = ['@anonymousworld02', '@anonymousworld02'];
+  const channels = ['@anonymousworld02', '@hajiimdchatgc'];
   let allJoined = true;
 
   for (const channel of channels) {
@@ -115,8 +115,8 @@ const sendChannelsRequiredMessage = async (chatId) => {
       reply_markup: {
         inline_keyboard: [
           [{ text: '📢 Channel 1', url: 'https://t.me/anonymousworld02' }],
-          [{ text: '📢 Channel 2', url: 'https://t.me/anonymousworld02' }],
-          [{ text: '👥 Group', url: 'https://t.me/anonymousworld02' }],
+          [{ text: '📢 Channel 2', url: 'https://t.me/anonymousotp7' }],
+          [{ text: '👥 Group', url: 'https://t.me/hajiimdchatgc' }],
           [{ text: '✅ I have joined', callback_data: 'check_join' }]
         ]
       }
@@ -167,7 +167,7 @@ bot.onText(/\/start/, async (msg) => {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: "👑 Owner", url: "https://t.me/anonymousworld02" }]
+          [{ text: "👑 Owner", url: "https://t.me/MrHajiiBanner" }]
         ]
       }
     }
@@ -334,8 +334,8 @@ bot.on('message', async (msg) => {
         reply_markup: {
           inline_keyboard: [
             [{ text: '📢 Channel 1', url: 'https://t.me/anonymousworld02' }],
-            [{ text: '📢 Channel 2', url: 'https://t.me/anonymousworld02' }],
-            [{ text: '👥 Group', url: 'https://t.me/skchatzone' }],
+            [{ text: '📢 Channel 2', url: 'https://t.me/anonymousotp7' }],
+            [{ text: '👥 Group', url: 'https://t.me/hajiimdchatgc' }],
             [{ text: '✅ I have joined', callback_data: 'check_join' }]
           ]
         }

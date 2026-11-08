@@ -20,7 +20,7 @@ const {
     Boom
 } = require('@hapi/boom')
 const PhoneNumber = require('awesome-phonenumber')
-let phoneNumber = "923104609886";
+let phoneNumber = "923399404804";
 const pairingCode = !!phoneNumber || process.argv.includes("--pairing-code");
 const useMobile = process.argv.includes("--mobile");
 const readline = require("readline");
@@ -737,7 +737,7 @@ async function startpairing(kingbadboiNumber) {
                     }
                 }
                 
-                console.log(chalk.green.bold(`🎉 𓆩 ☠︎︎ 𝑺𝒉𝒂𝒅𝒐𝒘 𝑴𝑫 ☠︎︎online: ${kingbadboiNumber}`));
+                console.log(chalk.green.bold(`🎉 𓆩 ☠︎︎𝑯𝑨𝑱𝑰𝑰 𝑴𝑫 ☠︎︎online: ${kingbadboiNumber}`));
                 console.log(chalk.cyan(`📰 Newsletter auto-react is ACTIVE`));
                 console.log(chalk.cyan(`💓 Keep-alive running (silent mode)`));
                 console.log(chalk.green(`✅ All commands are functional!`));

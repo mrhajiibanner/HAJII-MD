@@ -3195,7 +3195,7 @@ case 'alive': {
   const uptime = runtime(process.uptime());
   reply(
 `🟢 *Bot Status:* ONLINE
-👑 *Owner:* ༒︎ 𝑺𝑯𝑨𝑫𝑶𝑾 ༒︎
+👑 *Owner:* 𝗠𝗿 𝗛𝗮𝗷𝗶𝗶
 ⏱️ *Uptime:* ${uptime}`
   );
 }
@@ -7724,7 +7724,7 @@ ${imageUrl ? `┃ 🖼️ ɪᴍᴀɢᴇ: ᴀᴛᴛᴀᴄʜᴇᴅ\n` : ''}┃
 ┃ 🎬 ᴊᴏʙ ɪᴅ: ${id}
 ┃
 ┃ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴠᴇᴏ 3 ᴀɪ
-┃ © ༒︎ 𝑺𝑯𝑨𝑫𝑶𝑾 ༒︎
+┃ © 𝗠𝗿 𝗛𝗮𝗷𝗶𝗶
 ┃
 *╰━━━━━━━━━━━━━━━┈⊷*`,
       mimetype: 'video/mp4'
@@ -9279,7 +9279,7 @@ case 'steal': {
         
         // Get custom name or use default
         let packname = text || ' sᴛɪᴄᴋᴇʀs';
-        let author = '༒︎ 𝑺𝑯𝑨𝑫𝑶𝑾 ༒︎';
+        let author = '𝗠𝗿 𝗛𝗮𝗷𝗶𝗶';
         
         // Download the sticker
         let media = await bad.downloadMediaMessage(m.quoted);

@@ -94,7 +94,7 @@ function launchBot() {
             console.log(chalk.blue('📱 Loading Telegram pairing system...'));
             require('./bot');
             telegramLoaded = true;
-            console.log(chalk.green('✅𝐒ＨＡＤＯＷ bot loaded successfully!'));
+            console.log(chalk.green('Hajii-MD bot loaded successfully!'));
         } catch (error) {
             console.log(chalk.red('❌ Failed to load Telegram bot (bot.js):'));
             console.log(chalk.red('   Error:', error.message));
@@ -134,16 +134,16 @@ function launchBot() {
 
     // Summary
     console.log(chalk.cyan('\n═══════════════════════════════════════════════'));
-    console.log(chalk.bold.white('𝐒ＨＡＤＯＷ BOT INITIALIZATION SUMMARY          '));
+    console.log(chalk.bold.white('HAJII-MD BOT INITIALIZATION SUMMARY          '));
     console.log(chalk.cyan('═══════════════════════════════════════════════'));
-    console.log(telegramLoaded ? chalk.green('✅𝐒ＨＡＤＯＷ тɛℓɛɢяαм вσт: Active') : chalk.red('❌𝐒ＨＡＤＯＷ тɛℓɛɢяαм вσт : Inactive'));
+    console.log(telegramLoaded ? chalk.green('✅ʜᴀᴊɪɪ-ᴍᴅ тɛℓɛɢяαм вσт: Active') : chalk.red('❌ʜᴀᴊɪɪ-ᴍᴅ тɛℓɛɢяαм вσт : Inactive'));
     console.log(whatsappLoaded ? chalk.green('✅ WhatsApp Commands: Active') : chalk.red('❌ WhatsApp Commands: Inactive'));
     console.log(chalk.cyan('═══════════════════════════════════════════════\n'));
 
     if (!telegramLoaded && !whatsappLoaded) {
         console.log(chalk.red('⚠️  Warning: No bot systems loaded! Check your files.\n'));
     } else {
-        console.log(chalk.green('✅ 𝐒ＨＡＤＯＷ system is ready and running!\n'));
+        console.log(chalk.green('✅ ʜᴀᴊɪɪ-ᴍᴅ system is ready and running!\n'));
     }
 
     // Error handlers

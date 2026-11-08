@@ -1,4 +1,4 @@
-//base by SILVER 
+//base by Mr Hajii 
 //re-
 class TicTacToe {
     constructor(playerX = 'x', playerO = 'o') {

@@ -97,6 +97,9 @@
     "youtubedl-core": "^4.11.4",
     "ytdl-core": "^4.11.5"
   },
+  "overrides": {
+    "sharp": "^0.33.5"
+  },
   "devDependencies": {
     "nodemon": "^3.1.7"
   },

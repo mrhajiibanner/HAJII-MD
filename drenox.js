@@ -1932,6 +1932,42 @@ break
 // BUG MENU
 // ═══════════════════════════════════════════════════════════
 
+case 'bugmenu':
+case 'bug': {
+  const bugMenu = `╭━━〔 🐞 ʙᴜɢ ᴍᴇɴᴜ 〕━━┈⊷
+┃
+┃ ${prefix}bugmenu — show this menu
+┃ ${prefix}reportbug <details> — report a problem
+┃ ${prefix}ping — check response time
+┃ ${prefix}runtime — check uptime
+┃ ${prefix}allmenu — show all commands
+┃
+┃ If a command fails, send its exact name and
+┃ the error message to the owner.
+╰━━━━━━━━━━━━━━━━━━━━━┈⊷`
+
+  await bad.sendMessage(m.chat, { text: bugMenu }, { quoted: m })
+}
+break
+
+case 'reportbug':
+case 'bugreport': {
+  if (!text) return reply(`Usage: ${prefix}reportbug <describe the problem>`)
+
+  let ownerJid = ''
+  try {
+    const ownerFile = './allfunc/botowner.txt'
+    if (fs.existsSync(ownerFile)) ownerJid = fs.readFileSync(ownerFile, 'utf8').trim()
+  } catch {}
+  if (!ownerJid) ownerJid = botJid
+  if (!ownerJid.includes('@')) ownerJid += '@s.whatsapp.net'
+
+  const report = `🐞 *HAJII-MD BUG REPORT*\n\n👤 From: ${pushname || 'Unknown'}\n📍 Chat: ${from}\n🧩 Command: ${prefix}${command}\n📝 Details: ${text}`
+  await bad.sendMessage(ownerJid, { text: report })
+  await reply('✅ Bug report sent to the owner. Thank you!')
+}
+break
+
 
 // ═══════════════════════════════════════════════════════════
 // SUB MENUS WITH NEWSLETTER FORWARD
@@ -12025,8 +12061,8 @@ break
 // ═══════════════════════════════════════════════════════════
 
 case 'show':
-case 'Magic':
-case 'STG': {
+case 'magic':
+case 'stg': {
   if (!m.quoted) return reply('ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴠɪᴇᴡ-ᴏɴᴄᴇ ɪᴍᴀɢᴇ, ᴠɪᴅᴇᴏ, ᴏʀ ᴠᴏɪᴄᴇ ɴᴏᴛᴇ!')
   
   try {

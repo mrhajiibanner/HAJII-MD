@@ -46,6 +46,12 @@ async function downloadMedia(message, type) {
 // CACHE MAPS & STORAGE
 // ═══════════════════════════════════════════════════════════
 const { getSetting, setSetting } = require("./Settings.js")
+const {
+  installGitHubPlugin,
+  getPluginCommand,
+  listPlugins,
+  removePlugin
+} = require('./plugin-manager')
 const groupCache = new Map(); // Cache group metadata
 const groupMetadataCache = new Map();
 const loadingAnimations = new Map()
@@ -1245,6 +1251,23 @@ ${boardDisplay}
 // ═══════════════════════════════════════
     // COMMAND HANDLER START
     // ═══════════════════════════════════════
+    if (isCmd && !isBot) {
+      const pluginHandler = getPluginCommand(command)
+      if (pluginHandler) {
+        try {
+          await pluginHandler({
+            bad, m, store, chatUpdate, from, body, text, q, args,
+            prefix, command, reply, isCreator, isAdmins, isBotAdmins,
+            sender: m.sender, botNumber
+          })
+        } catch (error) {
+          console.error(`Plugin command error (${command}):`, error)
+          await reply(`❌ Plugin command failed: ${error.message}`)
+        }
+        return
+      }
+    }
+
     switch(command) {
 
 
@@ -2908,6 +2931,44 @@ break
 // ═══════════════════════════════════════════════════════════
 // OWNER COMMANDS 
 // ═══════════════════════════════════════════════════════════
+
+case 'plugin':
+case 'plugins':
+case 'addplugin':
+case 'gitadd': {
+  if (!isCreator) return reply('❌ Owner only')
+
+  const action = (args[1] || 'list').toLowerCase()
+  if (action === 'list') {
+    const installed = listPlugins()
+    return reply(installed.length
+      ? `🧩 *Installed plugins (${installed.length})*\n\n${installed.map((name, i) => `${i + 1}. ${name}`).join('\n')}`
+      : '🧩 No plugins installed.')
+  }
+
+  if (action === 'install' || action === 'add') {
+    if (!args[2]) return reply(`Usage: ${prefix}plugin install owner/repo [branch]`)
+    try {
+      const installed = await installGitHubPlugin(args[2], args[3] || 'main')
+      return reply(`✅ Plugin installed from GitHub.\n\n${installed.join('\n')}\n\nUse ${prefix}plugin list to view installed files.`)
+    } catch (error) {
+      return reply(`❌ Plugin install failed: ${error.message}`)
+    }
+  }
+
+  if (action === 'remove' || action === 'delete') {
+    if (!args[2]) return reply(`Usage: ${prefix}plugin remove filename.js`)
+    try {
+      const removed = removePlugin(args[2])
+      return reply(`✅ Plugin removed: ${removed}`)
+    } catch (error) {
+      return reply(`❌ Plugin remove failed: ${error.message}`)
+    }
+  }
+
+  return reply(`Usage:\n${prefix}plugin install owner/repo [branch]\n${prefix}plugin list\n${prefix}plugin remove filename.js`)
+}
+break
 
 case 'self':
 case 'private': {

@@ -1284,7 +1284,7 @@ case 'menu2': {
   await loading()
   
   const menuImages = [
-    'https://i.postimg.cc/wvNm1GWf/20261024-141323.jpg,
+    'https://i.postimg.cc/wvNm1GWf/20261024-141323.jpg',
     'https://i.postimg.cc/wvNm1GWf/20261024-141323.jpg'
   ]
   

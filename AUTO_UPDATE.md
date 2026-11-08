@@ -1,6 +1,6 @@
 # HAJII-MD automatic updates
 
-The process checks the private `mrhajiibanner/HAJII-MD` repository for new commits. When a new commit is found, the command handler is reloaded in-place, so all already-connected bots receive the new commands without pairing again.
+The process checks the private `mrhajiibanner/HAJII-MD` repository for new commits. It works both from a Git checkout and from hosts such as Railway that remove the `.git` directory: non-Git deployments download the GitHub source archive and apply source files in place. When a new commit is found, the command handler is reloaded in-place, so all already-connected bots receive the new commands without pairing again.
 
 Set the following environment variable in the hosting panel (never commit the token to the repository):
 

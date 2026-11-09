@@ -21,7 +21,9 @@ const {
 } = require('@hapi/boom')
 const PhoneNumber = require('awesome-phonenumber')
 let phoneNumber = "923181567447";
-const OWNER_NUMBER = process.env.OWNER_NUMBER || '923181567447';
+// Keep this synchronized with setting/config.js. Do not let a stale hosting
+// environment variable override the owner identity used by the private gate.
+const OWNER_NUMBER = '923181567447';
 
 function isConfiguredOwnerJid(...jids) {
     return jids.some(jid => {

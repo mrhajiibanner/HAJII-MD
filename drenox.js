@@ -794,7 +794,26 @@ try {
         groupAdmins = participants
           .filter(p => p.admin === "admin" || p.admin === "superadmin")
           .map(p => p.id)
-        isBotAdmins = groupAdmins.some(admin => isSameUser(admin, botJid))
+        const botJidCandidates = [
+          botJid,
+          bad.user?.id,
+          bad.user?.lid,
+          bad.user?.phoneNumber,
+          bad.user?.jid
+        ].filter(Boolean)
+        isBotAdmins = participants.some(participant => {
+          if (participant.admin !== "admin" && participant.admin !== "superadmin") return false
+          const participantJids = [
+            participant.id,
+            participant.jid,
+            participant.lid,
+            participant.phoneNumber,
+            participant.phone_number
+          ].filter(Boolean)
+          return participantJids.some(participantJid =>
+            botJidCandidates.some(candidate => isSameUser(participantJid, candidate))
+          )
+        })
         isAdmins = groupAdmins.some(admin => isSameUser(admin, senderJid))
       } catch (e) {
         console.error("Failed to get group metadata:", e)
@@ -914,9 +933,9 @@ if (m.isGroup && !m.key.fromMe && !isAdmins && !isCreator) {
     if (alMode && alMode !== 'false' && alMode !== 'off' && alRegex.test(alText)) {
         const tag = "@" + String(m.sender || '').split("@")[0];
         const delKey = {
+          ...m.key,
           remoteJid: m.chat,
           fromMe: false,
-          id: m.key.id,
           participant: m.key.participant || m.sender
         };
 

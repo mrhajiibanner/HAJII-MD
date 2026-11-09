@@ -42,14 +42,24 @@ const DRENOX_PATH = path.resolve(__dirname, 'drenox.js')
 
 // Reload the command handler in-place. Existing WhatsApp sockets stay alive,
 // so a source update does not force every connected bot to pair again.
+let handlerReloadTimer
 fs.watchFile(DRENOX_PATH, { interval: 1000 }, () => {
-    try {
-        delete require.cache[require.resolve('./drenox')]
-        handleMessage = require('./drenox')
-        console.log(chalk.green('♻️ Live update applied to all connected bot handlers'))
-    } catch (error) {
-        console.log(chalk.red(`❌ Live update reload failed: ${error.message}`))
-    }
+    clearTimeout(handlerReloadTimer)
+    handlerReloadTimer = setTimeout(() => {
+        let attempts = 0
+        const reload = () => {
+            try {
+                delete require.cache[require.resolve('./drenox')]
+                handleMessage = require('./drenox')
+                console.log(chalk.green('♻️ Live update applied to all connected bot handlers'))
+            } catch (error) {
+                attempts++
+                if (attempts < 5) return setTimeout(reload, 1000)
+                console.log(chalk.red(`❌ Live update reload failed: ${error.message}`))
+            }
+        }
+        reload()
+    }, 750)
 })
 let themeemoji = "😎";
 const chalk = require('chalk')

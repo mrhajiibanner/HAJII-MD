@@ -1,5 +1,7 @@
 const fs = require('fs');
-const SETTINGS_PATH = './setting.json';
+const path = require('path');
+// Always use the project directory, not whichever cwd the process manager uses.
+const SETTINGS_PATH = path.join(__dirname, 'setting.json');
 
 let settings = {};
 try {
@@ -42,4 +44,3 @@ function setSetting(jid, key, value) {
 }
 
 module.exports = { getSetting, setSetting };
-

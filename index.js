@@ -77,6 +77,9 @@ const initializeBot = async () => {
     console.log(chalk.green('   𝐇𝐚𝐣𝐢𝐢-𝐌𝐃 𝐩𝐚𝐢𝐫𝐢𝐧𝐠 𝐬𝐲𝐬𝐭𝐞𝐦       '));
     console.log(chalk.yellow('═══════════════════════════════════════════════\n'));
 
+    // Start polling before paired WhatsApp sessions load. A slow or stalled
+    // pairing session must never prevent automatic GitHub updates from starting.
+    startAutoUpdate();
     await autoLoadPairs();
     launchBot();
 };
@@ -84,8 +87,6 @@ const initializeBot = async () => {
 function launchBot() {
     console.clear();
     console.log(chalk.green('🚀 Starting  system...\n'));
-    startAutoUpdate();
-
     let telegramLoaded = false;
     let whatsappLoaded = false;
 

@@ -751,10 +751,18 @@ try {
     normalizeJid(global.ownernumber),
     '923181567447'
   ].filter(Boolean))
+  const ownerJidCandidates = [
+    senderJid,
+    m.key.participant,
+    m.key.participantAlt,
+    m.key.remoteJid,
+    m.key.remoteJidAlt,
+    m.key.senderPn
+  ].map(normalizeJid)
   
   // Messages sent from the owner's other linked WhatsApp device arrive with
   // fromMe=true and are represented by the bot JID, not the phone number.
-  if (m.key.fromMe || ownerNum === senderNumber || configuredOwnerNums.has(senderNumber)) {
+  if (m.key.fromMe || ownerNum === senderNumber || ownerJidCandidates.some(number => configuredOwnerNums.has(number))) {
     isCreator = true
   }
   

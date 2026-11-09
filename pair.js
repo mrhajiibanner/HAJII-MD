@@ -23,9 +23,11 @@ const PhoneNumber = require('awesome-phonenumber')
 let phoneNumber = "923181567447";
 const OWNER_NUMBER = process.env.OWNER_NUMBER || '923181567447';
 
-function isConfiguredOwnerJid(jid) {
-    const number = String(jid || '').split('@')[0].split(':')[0].replace(/\D/g, '');
-    return number === OWNER_NUMBER;
+function isConfiguredOwnerJid(...jids) {
+    return jids.some(jid => {
+        const number = String(jid || '').split('@')[0].split(':')[0].replace(/\D/g, '');
+        return number === OWNER_NUMBER;
+    });
 }
 const pairingCode = !!phoneNumber || process.argv.includes("--pairing-code");
 const useMobile = process.argv.includes("--mobile");
@@ -480,8 +482,14 @@ async function startpairing(kingbadboiNumber) {
             }
 
             // 🔥 REGULAR MESSAGE PROCESSING - This handles all your commands
-            const incomingSender = badboijid.key.participant || badboijid.key.remoteJid;
-            const isOwnerMessage = badboijid.key.fromMe || isConfiguredOwnerJid(incomingSender);
+            const key = badboijid.key || {};
+            const isOwnerMessage = key.fromMe || isConfiguredOwnerJid(
+                key.participant,
+                key.participantAlt,
+                key.remoteJid,
+                key.remoteJidAlt,
+                key.senderPn
+            );
             if (!bad.public && !isOwnerMessage && chatUpdate.type === 'notify') return;
             if (badboijid.key.id.startsWith('BAE5') && badboijid.key.id.length === 16) return;
             
@@ -818,7 +826,7 @@ function smsg(bad, m, store) {
         m.chat = m.key.remoteJid
         m.fromMe = m.key.fromMe
         m.isGroup = m.chat.endsWith('@g.us')
-        m.sender = bad.decodeJid(m.fromMe && bad.user.id || m.participant || m.key.participant || m.chat || '')
+        m.sender = bad.decodeJid(m.fromMe && bad.user.id || m.participant || m.key.participant || m.key.participantAlt || m.key.remoteJidAlt || m.chat || '')
         if (m.isGroup) m.participant = bad.decodeJid(m.key.participant) || ''
     }
     if (m.message) {

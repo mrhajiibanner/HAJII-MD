@@ -890,31 +890,58 @@ if (isBanned && !isCreator) {
       }
     }
 
-if (m.isGroup && !m.key.fromMe && !isAdmins && !isCreator && isBotAdmins) {
-    const alMode = getSetting(m.chat, "antilink", false);
-    const alText = m.text || m.body || m.msg?.caption || m.msg?.text || '';
-    const alRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|(chat\.whatsapp\.com\/[^\s]+)|(\b[a-zA-Z0-9-]+\.(com|net|org|io|co|in|me|xyz|info|biz|app|dev|tech|online|site|club|store|shop|live|tv|gg|cc|tk|ml|ga|cf|gq)\b[^\s]*)/i;
-    if (alMode && alRegex.test(alText)) {
-        const delKey = { remoteJid: m.chat, fromMe: false, id: m.key.id, participant: m.key.participant || m.sender };
-        // delete first for speed
-        bad.sendMessage(m.chat, { delete: delKey }).catch(e => console.log("Failed to delete:", e));
-        const tag = "@" + m.sender.split("@")[0];
+if (m.isGroup && !m.key.fromMe && !isAdmins && !isCreator) {
+    const alMode = String(getSetting(m.chat, "antilink", false) || '').toLowerCase();
+    const alText = [body, m.text, m.body, m.msg?.caption, m.msg?.text]
+      .filter(value => typeof value === 'string')
+      .join('\n');
+    const alRegex = /(?:https?:\/\/|www\.)\S+|(?:chat\.whatsapp\.com|t\.me|telegram\.me)\/\S+|\b(?:[a-z0-9-]+\.)+(?:com|net|org|io|co|in|me|xyz|info|biz|app|dev|tech|online|site|club|store|shop|live|tv|gg|cc|tk|ml|ga|cf|gq)\b(?:\/\S*)?/i;
+    if (alMode && alMode !== 'false' && alMode !== 'off' && alRegex.test(alText)) {
+        const tag = "@" + String(m.sender || '').split("@")[0];
+        const delKey = {
+          remoteJid: m.chat,
+          fromMe: false,
+          id: m.key.id,
+          participant: m.key.participant || m.sender
+        };
+
+        // Only an admin bot can remove another member's message.
+        if (isBotAdmins) {
+          try {
+            await bad.sendMessage(m.chat, { delete: delKey });
+          } catch (error) {
+            console.log(chalk.yellow(`⚠️ Anti-link delete failed: ${error.message}`));
+          }
+        }
+
         if (alMode === "delete") {
-            bad.sendMessage(m.chat, { text: `🚫 *ʟɪɴᴋ ᴅᴇᴛᴇᴄᴛᴇᴅ!* \n${tag} ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ ᴛᴏ sʜᴀʀᴇ ʟɪɴᴋs.`, mentions: [m.sender] }).catch(() => {});
+            await bad.sendMessage(m.chat, {
+              text: `🚫 *LINK DETECTED!*\n${tag} links are not allowed here.${isBotAdmins ? '' : '\n⚠️ Make the bot an admin to delete links.'}`,
+              mentions: [m.sender]
+            }).catch(() => {});
         } else if (alMode === "kick") {
-            bad.groupParticipantsUpdate(m.chat, [m.sender], "remove").catch(e => console.log("Failed to kick:", e));
-            bad.sendMessage(m.chat, { text: `🚫 *ʟɪɴᴋ ᴅᴇᴛᴇᴄᴛᴇᴅ!* \n${tag} ʜᴀs ʙᴇᴇɴ ᴋɪᴄᴋᴇᴅ!`, mentions: [m.sender] }).catch(() => {});
+            if (isBotAdmins) {
+              await bad.groupParticipantsUpdate(m.chat, [m.sender], "remove").catch(error =>
+                console.log(chalk.yellow(`⚠️ Anti-link kick failed: ${error.message}`)));
+              await bad.sendMessage(m.chat, { text: `🚫 *LINK DETECTED!*\n${tag} has been removed.`, mentions: [m.sender] }).catch(() => {});
+            } else {
+              await bad.sendMessage(m.chat, { text: `⚠️ *LINK DETECTED!*\n${tag} was warned. Make the bot an admin for kick mode.`, mentions: [m.sender] }).catch(() => {});
+            }
         } else if (alMode === "warn") {
             if (!global.antilinkWarnings) global.antilinkWarnings = {};
             if (!global.antilinkWarnings[m.chat]) global.antilinkWarnings[m.chat] = {};
             const w = (global.antilinkWarnings[m.chat][m.sender] || 0) + 1;
             global.antilinkWarnings[m.chat][m.sender] = w;
-            if (w >= 3) {
+            if (w >= 3 && isBotAdmins) {
                 delete global.antilinkWarnings[m.chat][m.sender];
-                bad.groupParticipantsUpdate(m.chat, [m.sender], "remove").catch(e => console.log("Failed to kick:", e));
-                bad.sendMessage(m.chat, { text: `🚫 *ʟɪɴᴋ ᴅᴇᴛᴇᴄᴛᴇᴅ!* \n${tag} ʜᴀs ʙᴇᴇɴ ᴋɪᴄᴋᴇᴅ ᴀғᴛᴇʀ 3 ᴡᴀʀɴɪɴɢs!`, mentions: [m.sender] }).catch(() => {});
+                await bad.groupParticipantsUpdate(m.chat, [m.sender], "remove").catch(error =>
+                  console.log(chalk.yellow(`⚠️ Anti-link kick failed: ${error.message}`)));
+                await bad.sendMessage(m.chat, { text: `🚫 *LINK DETECTED!*\n${tag} was removed after 3 warnings.`, mentions: [m.sender] }).catch(() => {});
             } else {
-                bad.sendMessage(m.chat, { text: `⚠️ *ᴡᴀʀɴɪɴɢ ${w}/3* \n${tag} ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ ᴛᴏ sʜᴀʀᴇ ʟɪɴᴋs!`, mentions: [m.sender] }).catch(() => {});
+                await bad.sendMessage(m.chat, {
+                  text: `⚠️ *WARNING ${w}/3*\n${tag} links are not allowed here.${w >= 3 && !isBotAdmins ? '\n⚠️ Make the bot an admin to kick.' : ''}`,
+                  mentions: [m.sender]
+                }).catch(() => {});
             }
         }
         return;
@@ -5976,8 +6003,9 @@ case "antilink": {
     if (!m.isGroup) return m.reply("ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ᴏɴʟʏ ᴡᴏʀᴋs ɪɴ ɢʀᴏᴜᴘs.");
     if (!args[1]) return m.reply("ᴜsᴀɢᴇ: ᴀɴᴛɪʟɪɴᴋ ᴡᴀʀɴ ᴏɴ/ᴏғғ | ᴀɴᴛɪʟɪɴᴋ ᴋɪᴄᴋ ᴏɴ/ᴏғғ | ᴀɴᴛɪʟɪɴᴋ ᴅᴇʟᴇᴛᴇ ᴏɴ/ᴏғғ");
 
-    const mode = args[1].toLowerCase();      // Changed from args[0]
-    const action = args[2] ? args[2].toLowerCase() : null;  // Changed from args[1]
+    const firstArg = args[1].toLowerCase();
+    const mode = ['on', 'off'].includes(firstArg) ? 'delete' : firstArg;
+    const action = ['on', 'off'].includes(firstArg) ? firstArg : (args[2] ? args[2].toLowerCase() : null);
 
     if (!action) return m.reply("ᴜsᴀɢᴇ: ᴀɴᴛɪʟɪɴᴋ ᴡᴀʀɴ ᴏɴ/ᴏғғ | ᴀɴᴛɪʟɪɴᴋ ᴋɪᴄᴋ ᴏɴ/ᴏғғ | ᴀɴᴛɪʟɪɴᴋ ᴅᴇʟᴇᴛᴇ ᴏɴ/ᴏғғ");
 

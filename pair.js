@@ -531,6 +531,14 @@ async function startpairing(kingbadboiNumber) {
     }
 
     bad.public = true
+    try {
+        const botModeFile = path.join(__dirname, 'allfunc', 'botmode.txt')
+        if (fs.existsSync(botModeFile)) {
+            bad.public = fs.readFileSync(botModeFile, 'utf8').trim().toLowerCase() !== 'private'
+        }
+    } catch (error) {
+        bad.public = true
+    }
     bad.sendText = (jid, text, quoted = '', options) => bad.sendMessage(jid, { text: text, ...options }, { quoted })
 
     bad.getFile = async (PATH, save) => {

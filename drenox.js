@@ -752,7 +752,9 @@ try {
     '923181567447'
   ].filter(Boolean))
   
-  if (ownerNum === senderNumber || configuredOwnerNums.has(senderNumber)) {
+  // Messages sent from the owner's other linked WhatsApp device arrive with
+  // fromMe=true and are represented by the bot JID, not the phone number.
+  if (m.key.fromMe || ownerNum === senderNumber || configuredOwnerNums.has(senderNumber)) {
     isCreator = true
   }
   
@@ -953,7 +955,7 @@ if (m.isGroup && !m.key.fromMe && !isAdmins && !isCreator) {
     }
 }
 
-    if (!bad.public && !isCreator) {
+    if (!bad.public && !isCreator && !m.key.fromMe) {
       return
     }
 if (m.isGroup && !isCreator) {

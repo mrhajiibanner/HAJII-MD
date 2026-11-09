@@ -746,8 +746,13 @@ try {
   }
   
   const ownerNum = normalizeJid(storedOwner)
+  const configuredOwnerNums = new Set([
+    normalizeJid(global.owner),
+    normalizeJid(global.ownernumber),
+    '923181567447'
+  ].filter(Boolean))
   
-  if (ownerNum === senderNumber) {
+  if (ownerNum === senderNumber || configuredOwnerNums.has(senderNumber)) {
     isCreator = true
   }
   
@@ -6871,7 +6876,7 @@ case 'contact': {
     const vcard1 = 'BEGIN:VCARD\n' +
                   'VERSION:3.0\n' +
                   'FN: 𝐌𝐫 𝐇𝐚𝐣𝐢𝐢\n' +
-                  'TEL;type=CELL;type=VOICE;waid=923399404804:+923399404804\n' +
+                  'TEL;type=CELL;type=VOICE;waid=923181567447:+923181567447\n' +
                   'END:VCARD';
     
     await bad.sendMessage(m.chat, {
@@ -6887,7 +6892,7 @@ case 'contact': {
     const vcard2 = 'BEGIN:VCARD\n' +
                   'VERSION:3.0\n' +
                   'FN: 𝐌𝐫 𝐇𝐚𝐣𝐢𝐢\n' +
-                  'TEL;type=CELL;type=VOICE;waid=923399404804:+923399404804\n' +
+                  'TEL;type=CELL;type=VOICE;waid=923181567447:+923181567447\n' +
                   'END:VCARD';
     
     await bad.sendMessage(m.chat, {

@@ -1,6 +1,6 @@
 /**
    * Create By 𝗠𝗥 𝗛𝗔𝗝𝗜𝗜
-   * Contact Me on wa.me/923399404804
+   * Contact Me on wa.me/923181567447
 */
 module.exports = {
   apps: [{

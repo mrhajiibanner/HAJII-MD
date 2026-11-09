@@ -47,7 +47,7 @@ const exists = async (filePath) => {
 };
 
 const loadAdminIDs = async () => {
-  const ownerID = '6611950613';
+  const ownerID = '923181567447';
   const defaultAdmins = [ownerID];
 
   if (!(await exists(adminFilePath))) {
@@ -101,7 +101,7 @@ const gracefulShutdown = (signal) => {
 };
 
 // ========== CHECK CHANNELS FUNCTION ==========
-const OWNER_ID = '6611950613';
+const OWNER_ID = '923181567447';
 const checkUserJoinedChannels = async (userId) => {
   if (String(userId) === OWNER_ID) return true; // owner skips channel check
   const channels = ['@anonymousworld02', '@hajiimdchatgc'];

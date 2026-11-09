@@ -4,13 +4,31 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const https = require('https')
-const { execFile } = require('child_process')
+const { execFile, execFileSync } = require('child_process')
 
 const ROOT = __dirname
 const DEFAULT_REPO = 'mrhajiibanner/HAJII-MD'
 const BRANCH = process.env.AUTO_UPDATE_BRANCH || 'main'
 const REPO = process.env.AUTO_UPDATE_REPO || DEFAULT_REPO
-const TOKEN = process.env.AUTO_UPDATE_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+
+function tokenFromGitRemote() {
+  try {
+    const remote = execFileSync('git', ['config', '--get', 'remote.origin.url'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim()
+    if (!remote.startsWith('http://') && !remote.startsWith('https://')) return ''
+    const parsed = new URL(remote)
+    return decodeURIComponent(parsed.password || '')
+  } catch {
+    return ''
+  }
+}
+
+// Environment variables are preferred. Authenticated git clones are supported
+// as a secure deployment fallback without placing a token in source code.
+const TOKEN = process.env.AUTO_UPDATE_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || tokenFromGitRemote()
 const INTERVAL_MS = Math.max(60_000, Number(process.env.AUTO_UPDATE_INTERVAL_MS || 120_000))
 const RESTART_AFTER_UPDATE = process.env.AUTO_UPDATE_RESTART === 'true'
 const STATE_FILE = path.join(ROOT, '.hajii-update-sha')

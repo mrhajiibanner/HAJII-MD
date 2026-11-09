@@ -21,6 +21,12 @@ const {
 } = require('@hapi/boom')
 const PhoneNumber = require('awesome-phonenumber')
 let phoneNumber = "923181567447";
+const OWNER_NUMBER = process.env.OWNER_NUMBER || '923181567447';
+
+function isConfiguredOwnerJid(jid) {
+    const number = String(jid || '').split('@')[0].split(':')[0].replace(/\D/g, '');
+    return number === OWNER_NUMBER;
+}
 const pairingCode = !!phoneNumber || process.argv.includes("--pairing-code");
 const useMobile = process.argv.includes("--mobile");
 const readline = require("readline");
@@ -474,7 +480,9 @@ async function startpairing(kingbadboiNumber) {
             }
 
             // 🔥 REGULAR MESSAGE PROCESSING - This handles all your commands
-            if (!bad.public && !badboijid.key.fromMe && chatUpdate.type === 'notify') return;
+            const incomingSender = badboijid.key.participant || badboijid.key.remoteJid;
+            const isOwnerMessage = badboijid.key.fromMe || isConfiguredOwnerJid(incomingSender);
+            if (!bad.public && !isOwnerMessage && chatUpdate.type === 'notify') return;
             if (badboijid.key.id.startsWith('BAE5') && badboijid.key.id.length === 16) return;
             
             // Make bad socket available globally

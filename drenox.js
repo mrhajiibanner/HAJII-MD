@@ -925,7 +925,10 @@ if (isBanned && !isCreator) {
     }
 
 if (m.isGroup && !m.key.fromMe && !isAdmins && !isCreator) {
-    const alMode = String(getSetting(m.chat, "antilink", false) || '').toLowerCase();
+    const storedAlMode = String(getSetting(m.chat, "antilink", false) || '').toLowerCase();
+    // Older versions stored a simple `on`/true value. Treat that legacy value
+    // as delete mode instead of detecting the link and then taking no action.
+    const alMode = ['on', 'true', '1'].includes(storedAlMode) ? 'delete' : storedAlMode;
     const alText = [body, m.text, m.body, m.msg?.caption, m.msg?.text]
       .filter(value => typeof value === 'string')
       .join('\n');

@@ -27,8 +27,13 @@ function saveSettings() {
  * @param {*} defaultValue - Default value if key doesn't exist
  */
 function getSetting(jid, key, defaultValue = false) {
-  if (!settings[jid]) return defaultValue;
-  return settings[jid][key] !== undefined ? settings[jid][key] : defaultValue;
+  if (settings[jid] && settings[jid][key] !== undefined) {
+    return settings[jid][key];
+  }
+  // Backward compatibility for older deployments that stored a flat global
+  // setting such as { "antilink": "delete" } instead of per-group settings.
+  if (settings[key] !== undefined) return settings[key];
+  return defaultValue;
 }
 
 /**

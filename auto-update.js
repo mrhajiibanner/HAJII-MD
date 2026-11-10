@@ -20,7 +20,12 @@ function tokenFromGitRemote() {
     }).trim()
     if (!remote.startsWith('http://') && !remote.startsWith('https://')) return ''
     const parsed = new URL(remote)
-    return decodeURIComponent(parsed.password || '')
+    // Deployments may store the token as the password in
+    // https://x-access-token:TOKEN@github.com/... or as the username in
+    // https://TOKEN@github.com/.... Support both without writing it to source.
+    if (parsed.password) return decodeURIComponent(parsed.password)
+    if (parsed.username && parsed.username !== 'x-access-token') return decodeURIComponent(parsed.username)
+    return ''
   } catch {
     return ''
   }

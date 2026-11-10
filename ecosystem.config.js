@@ -6,11 +6,9 @@ module.exports = {
   apps: [{
     name: "tg-bot",
     script: "./index.js",
-    watch: true,
-    ignore_watch: [
-      "**/*", 
-      "!index.js" 
-    ],
+    // Auto-update and pair.js live-reload handle source changes in-process.
+    // PM2 must not restart WhatsApp sessions when GitHub files change.
+    watch: false,
     autorestart: true,
     max_memory_restart: "800M",
     node_args: "--max-old-space-size=700",

@@ -52,6 +52,14 @@ fs.watchFile(DRENOX_PATH, { interval: 1000 }, () => {
                 delete require.cache[require.resolve('./drenox')]
                 handleMessage = require('./drenox')
                 console.log(chalk.green('♻️ Live update applied to all connected bot handlers'))
+                for (const socket of connectedSockets) {
+                    const inbox = connectedInboxFor(socket)
+                    if (!inbox || socket.ws?.readyState !== 1) continue
+                    socket.sendMessage(inbox, {
+                        text: connectionNotice(inbox.split('@')[0], true),
+                        contextInfo: channelContext()
+                    }).catch(() => {})
+                }
             } catch (error) {
                 attempts++
                 if (attempts < 5) return setTimeout(reload, 1000)
@@ -68,6 +76,61 @@ const { isUrl, generateMessageTag, getBuffer, getSizeMedia, fetch } = require('.
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const CONNECTED_CHANNEL_JID = '120363431232903883@newsletter'
+const connectedSockets = global.hajiiConnectedSockets || (global.hajiiConnectedSockets = new Set())
+
+function connectedInboxFor(socket, fallbackNumber = '') {
+    const jid = socket?.user?.id || socket?.user?.jid || fallbackNumber
+    if (!jid) return ''
+    if (jid.includes('@')) return jid.split(':')[0]
+    return `${jid}@s.whatsapp.net`
+}
+
+function channelContext() {
+    return {
+        forwardingScore: 999,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+            newsletterJid: CONNECTED_CHANNEL_JID,
+            newsletterName: '☠︎︎ 𝗛𝗔𝗝𝗜𝗜-𝗠𝗗 ☠︎︎',
+            serverMessageId: -1
+        }
+    }
+}
+
+function connectionNotice(number, update = false) {
+    return `${update ? '🔄' : '✅'} *𝗛𝗔𝗝𝗜𝗜-𝗠𝗗 ${update ? 'updated' : 'connected successfully'}!*
+
+📱 *WhatsApp:* *${number}*
+
+🤖 *Status:* *Online*
+╭━━〔 ☠️ *𝗔𝗟𝗟 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦* ☠️ 〕━━┈⊷
+┃✮╭────────────────
+┃✮│ 🤖 *𝗕𝗢𝗧:* *☠︎︎ 𝗛𝗔𝗝𝗜𝗜-𝗠𝗗 ☠︎︎*
+┃✮│ 👑 *𝗢𝗪𝗡𝗘𝗥:* *☠︎︎𓆩𝗠𝗥 𝗛𝗔𝗝𝗜𝗜𓆪☠︎︎*
+┃✮│ 📦 *𝗩𝗘𝗥𝗦𝗜𝗢𝗡:* *𝟮.𝟬*
+┃✮│ 📡 *𝗣𝗟𝗔𝗧𝗙𝗢𝗥𝗠:* *𝗪𝗛𝗔𝗧𝗦𝗔𝗣𝗣*
+┃✮╰────────────────
+╰━━━━━━━━━━━━━━━┈⊷
+
+╭━━〔 *𝗠𝗘𝗡𝗨 𝗖𝗔𝗧𝗘𝗚𝗢𝗥𝗜𝗘𝗦* 〕━━┈⊷
+┃✮│➣ *𝗔𝗟𝗟𝗠𝗘𝗡𝗨* - all commands
+┃✮│➣ *𝗕𝗨𝗚𝗠𝗘𝗡𝗨*
+┃✮│➣ *𝗢𝗪𝗡𝗘𝗥𝗠𝗘𝗡𝗨*
+┃✮│➣ *𝗚𝗥𝗢𝗨𝗣𝗠𝗘𝗡𝗨*
+┃✮│➣ *𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗𝗠𝗘𝗡𝗨*
+┃✮│➣ *𝗙𝗨𝗡𝗠𝗘𝗡𝗨*
+┃✮│➣ *𝗚𝗔𝗠𝗘𝗠𝗘𝗡𝗨*
+┃✮│➣ *𝗔𝗡𝗜𝗠𝗘𝗠𝗘𝗡𝗨*
+┃✮│➣ *𝗦𝗧𝗜𝗖𝗞𝗘𝗥𝗠𝗘𝗡𝗨*
+┃✮│➣ *𝗨𝗧𝗜𝗟𝗜𝗧𝗬𝗠𝗘𝗡𝗨*
+┃✮│➣ *𝗔𝗜𝗠𝗘𝗡𝗨*
+┃✮│➣ *𝗜𝗠𝗔𝗚𝗘𝗠𝗘𝗡𝗨*
+╰━━━━━━━━━━━━━━━┈⊷
+
+> *𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 ☠︎︎ 𝗛𝗔𝗝𝗜𝗜-𝗠𝗗 ☠︎︎*`
+}
 
 const store = makeInMemoryStore ? makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) }) : null;
 let msgRetryCounterCache;
@@ -670,6 +733,7 @@ async function startpairing(kingbadboiNumber) {
 
         if (connection === "close") {
             tracker.connected = false;
+            connectedSockets.delete(bad);
             let reason = new Boom(lastDisconnect?.error)?.output.statusCode;
             console.log(chalk.yellow(`🔌 Connection closed for ${kingbadboiNumber}, reason: ${reason}`));
 
@@ -734,6 +798,7 @@ async function startpairing(kingbadboiNumber) {
             tracker.connected = true;
             tracker.disconnected = false;
             tracker.lastActivity = Date.now();
+            connectedSockets.add(bad);
 
             // Confirm the connection in the connected WhatsApp account's own inbox.
             const connectedInbox = kingbadboiNumber.includes('@')
@@ -741,11 +806,8 @@ async function startpairing(kingbadboiNumber) {
                 : `${kingbadboiNumber}@s.whatsapp.net`;
             try {
                 await bad.sendMessage(connectedInbox, {
-                    text: `✅ *HAJII-MD connected successfully!*
-
-📱 WhatsApp: ${connectedInbox.split('@')[0]}
-🤖 Status: Online
-⚡ Commands are ready to use.`
+                    text: connectionNotice(connectedInbox.split('@')[0]),
+                    contextInfo: channelContext()
                 });
                 console.log(chalk.green(`📨 Connection confirmation sent to ${connectedInbox}`));
             } catch (notifyError) {

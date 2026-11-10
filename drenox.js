@@ -30,7 +30,7 @@ const API_KEY = 'free_key@maher_apis';
 const API_BASE = 'https://api.nexoracle.com/stalking';
 
 const NEXORACLE_API = 'https://api.nexoracle.com/';
-const NEXORACLE_KEY = 'free_key@maher_apis&q';
+const NEXORACLE_KEY = 'free_key@maher_apis';
 
 // Download media helper
 async function downloadMedia(message, type) {
@@ -6485,57 +6485,6 @@ break
 
 // ═══════════════════════════════════════════════════════════
 
-case "ytvideo":
-case "ytmp4": {
-    if (!text) return reply(example("https://youtube.com/watch?v=xxxxx"));
-    if (!text.includes('youtube.com') && !text.includes('youtu.be')) {
-        return reply("ᴘʟᴇᴀsᴇ ᴘʀᴏᴠɪᴅᴇ ᴀ ᴠᴀʟɪᴅ ʏᴏᴜᴛᴜʙᴇ ʟɪɴᴋ");
-    }
-    
-    try {
-        await bad.sendMessage(m.chat, {react: {text: '⏳', key: m.key}});
-        
-        const response = await axios.post('https://youtube-video-audio-downloader.p.rapidapi.com/videos/downloads', 
-        {
-            url: text,
-            quality: '720'
-        },
-        {
-            headers: {
-                'content-type': 'application/json',
-                'x-rapidapi-key': 'e73bff0542msha94d08136fc4eeep184ff6jsn5bcade1d7824',
-                'x-rapidapi-host': 'youtube-video-audio-downloader.p.rapidapi.com'
-            }
-        });
-        
-        const data = response.data;
-        
-        if (data && data.downloadUrl) {
-            await bad.sendMessage(m.chat, {
-                video: {url: data.downloadUrl},
-                caption: `╭━━━〔 *ʏᴏᴜᴛᴜʙᴇ ᴅᴏᴡɴʟᴏᴀᴅᴇʀ* 〕━━━╮
-
-📝 *ᴛɪᴛʟᴇ:* ${data.title || 'N/A'}
-⏱️ *ᴅᴜʀᴀᴛɪᴏɴ:* ${data.duration || 'N/A'}
-📊 *ǫᴜᴀʟɪᴛʏ:* 720p
-
-╰━━━━━━━━━━━━━━━━━╯`,
-                mimetype: 'video/mp4'
-            }, {quoted: m});
-            
-            await bad.sendMessage(m.chat, {react: {text: '✅', key: m.key}});
-        } else {
-            throw new Error('ɴᴏ ᴠɪᴅᴇᴏ ʟɪɴᴋ ғᴏᴜɴᴅ');
-        }
-        
-    } catch (error) {
-        console.error('YouTube Video Error:', error.message);
-        await bad.sendMessage(m.chat, {react: {text: '❌', key: m.key}});
-        return reply(`❌ ʏᴏᴜᴛᴜʙᴇ ᴅᴏᴡɴʟᴏᴀᴅ ғᴀɪʟᴇᴅ\n\n${error.message}`);
-    }
-}
-break;
-// ═══════════════════════════════════════════════════════════
 // PLAY - YouTube Audio Search & Download
 // ══════════════════════════════════════════════════════════
    
@@ -6558,26 +6507,28 @@ case 'song': {
 
     const video = search.videos[0]
 
-    // 2️⃣ API Call
-    const api = `https://api.ootaizumi.web.id/downloader/youtube`
-    const { data } = await axios.get(api, {
-      params: {
-        url: video.url,
-        format: 'mp3'
-      }
-    })
-
-    if (!data.status || !data.result?.download) {
-      throw new Error('Download failed')
+    // 2️⃣ API Call with a second provider fallback
+    let result
+    try {
+      const { data } = await axios.get('https://api.ootaizumi.web.id/downloader/youtube', {
+        params: { url: video.url, format: 'mp3' },
+        timeout: 30000
+      })
+      result = data?.result
+    } catch (primaryError) {
+      const fallbackUrl = `${NEXORACLE_API}downloader/ytmp3?apikey=${encodeURIComponent(NEXORACLE_KEY.split('&')[0])}&url=${encodeURIComponent(video.url)}`
+      const fallback = await fetchJson(fallbackUrl)
+      result = fallback?.result
     }
 
-    const result = data.result
+    const downloadUrl = result?.download || result?.url || result?.audio
+    if (!downloadUrl) throw new Error('Download failed: no audio URL returned')
 
     // 3️⃣ Send Audio
     await bad.sendMessage(
       m.chat,
       {
-        audio: { url: result.download },
+        audio: { url: downloadUrl },
         mimetype: 'audio/mpeg',
         fileName: `${result.title}.mp3`,
         contextInfo: {
@@ -10324,22 +10275,13 @@ case 'yts': {
     
     try {
         await reply('🔍 sᴇᴀʀᴄʜɪɴɢ ʏᴏᴜᴛᴜʙᴇ...');
-        
-        const response = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(text)}`);
-        const html = await response.text();
-        
-        // Simple regex to extract video info
-        const videoMatch = html.match(/"videoId":"([^"]+)","thumbnail":{"thumbnails":\[{"url":"([^"]+)".+?"title":{"runs":\[{"text":"([^"]+)"/);
-        
-        if (!videoMatch) return reply('❌ ɴᴏ ʀᴇsᴜʟᴛs ғᴏᴜɴᴅ!');
-        
-        const [, videoId, thumbnail, title] = videoMatch;
-        const videoUrl = `https://youtube.com/watch?v=${videoId}`;
-        
-        await bad.sendMessage(from, {
-            image: { url: thumbnail },
-            caption: `🎥 *ʏᴏᴜᴛᴜʙᴇ sᴇᴀʀᴄʜ*\n\n📝 ${title}\n🔗 ${videoUrl}`
-        }, { quoted: m });
+        const results = await yts(text);
+        const videos = (results.videos || []).slice(0, 5);
+        if (!videos.length) return reply('❌ ɴᴏ ʀᴇsᴜʟᴛs ғᴏᴜɴᴅ!');
+        const list = videos.map((video, index) =>
+            `${index + 1}. *${video.title}*\n⏱️ ${video.timestamp || video.duration || 'N/A'}\n🔗 ${video.url}`
+        ).join('\n\n');
+        await reply(`🎥 *ʏᴏᴜᴛᴜʙᴇ sᴇᴀʀᴄʜ ʀᴇsᴜʟᴛs*\n\n${list}`);
         
     } catch (error) {
         console.error('YTSearch Error:', error);

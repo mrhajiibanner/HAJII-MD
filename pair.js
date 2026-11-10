@@ -52,13 +52,8 @@ fs.watchFile(DRENOX_PATH, { interval: 1000 }, () => {
                 delete require.cache[require.resolve('./drenox')]
                 handleMessage = require('./drenox')
                 console.log(chalk.green('♻️ Live update applied to all connected bot handlers'))
-                for (const socket of connectedSockets) {
-                    const inbox = connectedInboxFor(socket)
-                    if (!inbox || socket.ws?.readyState !== 1) continue
-                    socket.sendMessage(inbox, {
-                        text: connectionNotice(inbox.split('@')[0], true),
-                        contextInfo: channelContext()
-                    }).catch(() => {})
+                if (Date.now() - lastUpdateNoticeAt > 10000) {
+                    notifyConnectedBotsOfUpdate(['drenox.js'], `live-${Date.now()}`)
                 }
             } catch (error) {
                 attempts++
@@ -99,12 +94,16 @@ function channelContext() {
     }
 }
 
-function connectionNotice(number, update = false) {
+function connectionNotice(number, update = false, changedFiles = []) {
+    const fileSummary = changedFiles.length
+        ? `\n🧩 *Updated:* ${changedFiles.slice(0, 12).join(', ')}${changedFiles.length > 12 ? ` (+${changedFiles.length - 12} more)` : ''}\n`
+        : ''
     return `${update ? '🔄' : '✅'} *𝗛𝗔𝗝𝗜𝗜-𝗠𝗗 ${update ? 'updated' : 'connected successfully'}!*
 
 📱 *WhatsApp:* *${number}*
 
 🤖 *Status:* *Online*
+${fileSummary}
 ╭━━〔 ☠️ *𝗔𝗟𝗟 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦* ☠️ 〕━━┈⊷
 ┃✮╭────────────────
 ┃✮│ 🤖 *𝗕𝗢𝗧:* *☠︎︎ 𝗛𝗔𝗝𝗜𝗜-𝗠𝗗 ☠︎︎*
@@ -131,6 +130,25 @@ function connectionNotice(number, update = false) {
 
 > *𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 ☠︎︎ 𝗛𝗔𝗝𝗜𝗜-𝗠𝗗 ☠︎︎*`
 }
+
+let lastUpdateNoticeKey = ''
+let lastUpdateNoticeAt = 0
+async function notifyConnectedBotsOfUpdate(changedFiles = [], revision = '') {
+    const files = [...new Set(changedFiles.filter(Boolean))].sort()
+    const key = `${revision}|${files.join(',')}`
+    if (key === lastUpdateNoticeKey && Date.now() - lastUpdateNoticeAt < 30000) return
+    lastUpdateNoticeKey = key
+    lastUpdateNoticeAt = Date.now()
+    for (const socket of connectedSockets) {
+        const inbox = connectedInboxFor(socket)
+        if (!inbox || socket.ws?.readyState !== 1) continue
+        await socket.sendMessage(inbox, {
+            text: connectionNotice(inbox.split('@')[0], true, files),
+            contextInfo: channelContext()
+        }).catch(() => {})
+    }
+}
+global.hajiiNotifyUpdate = notifyConnectedBotsOfUpdate
 
 const store = makeInMemoryStore ? makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) }) : null;
 let msgRetryCounterCache;

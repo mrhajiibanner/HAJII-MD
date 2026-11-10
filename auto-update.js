@@ -120,7 +120,7 @@ function downloadArchive(destination) {
   })
 }
 
-function copySourceTree(source, destination, relative = '') {
+function copySourceTree(source, destination, relative = '', changedFiles = []) {
   const ignored = new Set([
     '.git', 'node_modules', '.hajii-update-sha', 'setting.json', 'auth.json',
     'database', 'tmp', 'sticker', 'kingbadboitimewisher'
@@ -132,10 +132,11 @@ function copySourceTree(source, destination, relative = '') {
     const to = path.join(destination, entry.name)
     if (entry.isDirectory()) {
       fs.mkdirSync(to, { recursive: true })
-      copySourceTree(from, to, rel)
+      copySourceTree(from, to, rel, changedFiles)
     } else if (entry.isFile()) {
       fs.mkdirSync(path.dirname(to), { recursive: true })
       fs.copyFileSync(from, to)
+      changedFiles.push(rel.split(path.sep).join('/'))
     }
   }
 }
@@ -150,8 +151,10 @@ async function applyArchiveUpdate(remoteSha) {
     await new Promise((resolve, reject) => {
       execFile('tar', ['-xzf', archive, '-C', extracted, '--strip-components=1'], { timeout: 120_000 }, error => error ? reject(error) : resolve())
     })
-    copySourceTree(extracted, ROOT)
+    const changedFiles = []
+    copySourceTree(extracted, ROOT, '', changedFiles)
     fs.writeFileSync(STATE_FILE, `${remoteSha}\n`)
+    return changedFiles
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true })
   }
@@ -172,13 +175,20 @@ async function checkForUpdate() {
     if (!remoteSha || remoteSha === localSha) return
 
     console.log(`🔄 New HAJII-MD update found: ${remoteSha.slice(0, 8)}`)
+    let changedFiles = []
     if (hasGit) {
       const authHeader = `Authorization: Bearer ${TOKEN}`
       await runGit(['-c', `http.extraHeader=${authHeader}`, 'fetch', '--no-tags', 'origin', BRANCH])
+      changedFiles = (await runGit(['diff', '--name-only', 'HEAD', `origin/${BRANCH}`]))
+        .split('\n').map(file => file.trim()).filter(Boolean)
       await runGit(['reset', '--hard', `origin/${BRANCH}`])
       fs.writeFileSync(STATE_FILE, `${remoteSha}\n`)
     } else {
-      await applyArchiveUpdate(remoteSha)
+      changedFiles = await applyArchiveUpdate(remoteSha)
+    }
+
+    if (typeof global.hajiiNotifyUpdate === 'function') {
+      await global.hajiiNotifyUpdate(changedFiles, remoteSha)
     }
 
     if (RESTART_AFTER_UPDATE) {

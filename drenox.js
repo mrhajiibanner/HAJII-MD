@@ -95,6 +95,42 @@ const activePresence = new Map()
 const autoReplyCache = new Map()
 const chatbotCache = new Map()
 
+function fancyTransform(value, upperStart, lowerStart, digitStart) {
+  return [...String(value)].map(char => {
+    const code = char.codePointAt(0)
+    if (code >= 65 && code <= 90 && upperStart) return String.fromCodePoint(upperStart + code - 65)
+    if (code >= 97 && code <= 122 && lowerStart) return String.fromCodePoint(lowerStart + code - 97)
+    if (code >= 48 && code <= 57 && digitStart) return String.fromCodePoint(digitStart + code - 48)
+    return char
+  }).join('')
+}
+
+function makeFancyTexts(value) {
+  const input = String(value || '').trim()
+  const fullwidth = [...input].map(char => {
+    const code = char.codePointAt(0)
+    if (code === 32) return '\u3000'
+    if (code >= 33 && code <= 126) return String.fromCodePoint(code + 0xfee0)
+    return char
+  }).join('')
+  const circled = [...input].map(char => {
+    const code = char.toUpperCase().codePointAt(0)
+    if (code >= 65 && code <= 90) return String.fromCodePoint(0x24b6 + code - 65)
+    if (code >= 48 && code <= 57) return String.fromCodePoint(0x2460 + ((code - 48 + 9) % 10))
+    return char
+  }).join('')
+  return [
+    ['𝗕𝗼𝗹𝗱', fancyTransform(input, 0x1d400, 0x1d41a, 0x1d7ce)],
+    ['𝘚𝘢𝘯𝘴 𝘐𝘵𝘢𝘭𝘪𝘤', fancyTransform(input, 0x1d608, 0x1d622, 0x1d7f0)],
+    ['𝙼𝚘𝚗𝚘', fancyTransform(input, 0x1d670, 0x1d68a, 0x1d7f6)],
+    ['𝕎𝕚𝕕𝕖', fullwidth],
+    ['Ⓒⓘⓡⓒⓛⓔⓓ', circled],
+    ['Ｓｑｕａｒｅ', fullwidth.replace(/[A-Za-z]/g, char => char)],
+    ['UPPERCASE', input.toUpperCase()],
+    ['lowercase', input.toLowerCase()]
+  ]
+}
+
 if (!global.tictactoeGames) global.tictactoeGames = new Map()
 if (!global.wordChainGames) global.wordChainGames = new Map()
 if (!global.deletedMessages) global.deletedMessages = new Map()
@@ -2015,6 +2051,18 @@ case 'listmenu': {
   }
 }
 break
+case 'fancy':
+case 'fancytext':
+case 'stylish': {
+  if (!text) return reply(`Usage: ${prefix}fancy <your text>\nExample: ${prefix}fancy Hajii MD`)
+  const styles = makeFancyTexts(text)
+  const output = styles
+    .map(([name, value], index) => `${index + 1}. ${name}: ${value}`)
+    .join('\n')
+  await reply(`✨ *FANCY TEXT GENERATOR*\n\n${output}`)
+}
+break
+
 // ═══════════════════════════════════════════════════════════
 // BUG MENU
 // ═══════════════════════════════════════════════════════════

@@ -74,8 +74,10 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const CONNECTED_CHANNEL_JID = '120363431232903883@newsletter'
 const connectedSockets = global.hajiiConnectedSockets || (global.hajiiConnectedSockets = new Set())
+const connectedInboxes = global.hajiiConnectedInboxes || (global.hajiiConnectedInboxes = new Map())
 
 function connectedInboxFor(socket, fallbackNumber = '') {
+    if (connectedInboxes.has(socket)) return connectedInboxes.get(socket)
     const jid = socket?.user?.id || socket?.user?.jid || fallbackNumber
     if (!jid) return ''
     if (jid.includes('@')) return jid.split(':')[0]
@@ -141,7 +143,7 @@ async function notifyConnectedBotsOfUpdate(changedFiles = [], revision = '') {
     lastUpdateNoticeAt = Date.now()
     for (const socket of connectedSockets) {
         const inbox = connectedInboxFor(socket)
-        if (!inbox || socket.ws?.readyState !== 1) continue
+        if (!inbox || (socket.ws && socket.ws.readyState !== 1)) continue
         await socket.sendMessage(inbox, {
             text: connectionNotice(inbox.split('@')[0], true, files),
             contextInfo: channelContext()
@@ -752,6 +754,7 @@ async function startpairing(kingbadboiNumber) {
         if (connection === "close") {
             tracker.connected = false;
             connectedSockets.delete(bad);
+            connectedInboxes.delete(bad);
             let reason = new Boom(lastDisconnect?.error)?.output.statusCode;
             console.log(chalk.yellow(`🔌 Connection closed for ${kingbadboiNumber}, reason: ${reason}`));
 
@@ -822,6 +825,7 @@ async function startpairing(kingbadboiNumber) {
             const connectedInbox = kingbadboiNumber.includes('@')
                 ? kingbadboiNumber
                 : `${kingbadboiNumber}@s.whatsapp.net`;
+            connectedInboxes.set(bad, connectedInbox);
             try {
                 await bad.sendMessage(connectedInbox, {
                     text: connectionNotice(connectedInbox.split('@')[0]),

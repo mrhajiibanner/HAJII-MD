@@ -193,14 +193,23 @@ async function checkForUpdate() {
     }
     let changedFiles = []
     if (hasGit) {
-      const authHeader = `Authorization: Bearer ${TOKEN}`
-      await runGit(['-c', `http.extraHeader=${authHeader}`, 'fetch', '--no-tags', 'origin', BRANCH])
+      const fetchArgs = ['fetch', '--no-tags', 'origin', BRANCH]
+      if (TOKEN) fetchArgs.unshift('-c', `http.extraHeader=Authorization: Bearer ${TOKEN}`)
+      await runGit(fetchArgs)
       changedFiles = (await runGit(['diff', '--name-only', 'HEAD', `origin/${BRANCH}`]))
         .split('\n').map(file => file.trim()).filter(Boolean)
       await runGit(['reset', '--hard', `origin/${BRANCH}`])
       fs.writeFileSync(STATE_FILE, `${remoteSha}\n`)
     } else {
       changedFiles = await applyArchiveUpdate(remoteSha)
+    }
+
+    if (typeof global.hajiiReloadCommandHandler === 'function') {
+      try {
+        await global.hajiiReloadCommandHandler()
+      } catch (reloadError) {
+        console.log(`⚠️ Live command reload skipped: ${reloadError.message}`)
+      }
     }
 
     if (typeof global.hajiiNotifyUpdate === 'function') {
@@ -227,11 +236,8 @@ async function checkForUpdate() {
 }
 
 function startAutoUpdate() {
-  if (!TOKEN) {
-    console.log('ℹ️ Auto-update disabled: set AUTO_UPDATE_TOKEN or GITHUB_TOKEN for the private repository.')
-    return
-  }
-  console.log(`🔁 Auto-update enabled: checking ${REPO}@${BRANCH} every ${Math.round(INTERVAL_MS / 1000)}s`)
+  console.log(`🔁 Auto-update enabled: checking ${REPO}@${BRANCH} every ${Math.round(INTERVAL_MS / 1000)}s${TOKEN ? ' (authenticated)' : ' (unauthenticated)'}`)
+  if (!TOKEN) console.log('⚠️ No GitHub token found. Private repository checks will return 404; set AUTO_UPDATE_TOKEN in Railway Variables.')
   checkForUpdate()
   timer = setInterval(checkForUpdate, INTERVAL_MS)
   timer.unref?.()

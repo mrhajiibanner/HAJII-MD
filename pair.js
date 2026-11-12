@@ -43,25 +43,34 @@ const DRENOX_PATH = path.resolve(__dirname, 'drenox.js')
 // Reload the command handler in-place. Existing WhatsApp sockets stay alive,
 // so a source update does not force every connected bot to pair again.
 let handlerReloadTimer
+async function reloadCommandHandler() {
+    let lastError
+    for (let attempts = 1; attempts <= 5; attempts++) {
+        try {
+            delete require.cache[require.resolve('./drenox')]
+            handleMessage = require('./drenox')
+            console.log(chalk.green('♻️ Live update applied to all connected bot handlers'))
+            return true
+        } catch (error) {
+            lastError = error
+            await sleep(1000)
+        }
+    }
+    throw lastError || new Error('command handler reload failed')
+}
+global.hajiiReloadCommandHandler = reloadCommandHandler
+
 fs.watchFile(DRENOX_PATH, { interval: 1000 }, () => {
     clearTimeout(handlerReloadTimer)
-    handlerReloadTimer = setTimeout(() => {
-        let attempts = 0
-        const reload = () => {
-            try {
-                delete require.cache[require.resolve('./drenox')]
-                handleMessage = require('./drenox')
-                console.log(chalk.green('♻️ Live update applied to all connected bot handlers'))
-                if (Date.now() - lastUpdateNoticeAt > 10000) {
-                    notifyConnectedBotsOfUpdate(['drenox.js'], `live-${Date.now()}`)
-                }
-            } catch (error) {
-                attempts++
-                if (attempts < 5) return setTimeout(reload, 1000)
-                console.log(chalk.red(`❌ Live update reload failed: ${error.message}`))
+    handlerReloadTimer = setTimeout(async () => {
+        try {
+            await reloadCommandHandler()
+            if (Date.now() - lastUpdateNoticeAt > 10000) {
+                notifyConnectedBotsOfUpdate(['drenox.js'], `live-${Date.now()}`)
             }
+        } catch (error) {
+            console.log(chalk.red(`❌ Live update reload failed: ${error.message}`))
         }
-        reload()
     }, 750)
 })
 let themeemoji = "😎";

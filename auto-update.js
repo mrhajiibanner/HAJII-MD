@@ -180,6 +180,17 @@ async function checkForUpdate() {
     if (!remoteSha || remoteSha === localSha) return
 
     console.log(`🔄 New HAJII-MD update found: ${remoteSha.slice(0, 8)}`)
+    // Notify first, but never let WhatsApp notification failure block the update.
+    if (typeof global.hajiiNotifyUpdateAvailable === 'function') {
+      try {
+        await Promise.race([
+          Promise.resolve(global.hajiiNotifyUpdateAvailable(remoteSha)),
+          new Promise(resolve => setTimeout(resolve, 8000))
+        ])
+      } catch (notifyError) {
+        console.log(`⚠️ Update-available notification skipped: ${notifyError.message}`)
+      }
+    }
     let changedFiles = []
     if (hasGit) {
       const authHeader = `Authorization: Bearer ${TOKEN}`
@@ -193,7 +204,14 @@ async function checkForUpdate() {
     }
 
     if (typeof global.hajiiNotifyUpdate === 'function') {
-      await global.hajiiNotifyUpdate(changedFiles, remoteSha)
+      try {
+        await Promise.race([
+          Promise.resolve(global.hajiiNotifyUpdate(changedFiles, remoteSha)),
+          new Promise(resolve => setTimeout(resolve, 8000))
+        ])
+      } catch (notifyError) {
+        console.log(`⚠️ Update confirmation notification skipped: ${notifyError.message}`)
+      }
     }
 
     if (RESTART_AFTER_UPDATE) {
@@ -219,4 +237,5 @@ function startAutoUpdate() {
   timer.unref?.()
 }
 
+global.hajiiCheckForUpdate = checkForUpdate
 module.exports = { startAutoUpdate, checkForUpdate }

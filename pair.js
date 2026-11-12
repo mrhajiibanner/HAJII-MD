@@ -135,6 +135,51 @@ ${fileSummary}
 
 let lastUpdateNoticeKey = ''
 let lastUpdateNoticeAt = 0
+let lastUpdateAvailableKey = ''
+let lastUpdateAvailableAt = 0
+
+function updateAvailableNotice(revision = '') {
+    return `🔔 *𝗛𝗔𝗝𝗜𝗜-𝗠𝗗 𝗨𝗣𝗗𝗔𝗧𝗘 𝗔𝗩𝗔𝗜𝗟𝗔𝗕𝗟𝗘!*
+
+📦 New GitHub update: *${String(revision).slice(0, 8)}*
+⚙️ Bot update install kar raha hai. WhatsApp session disconnect nahi hoga.
+✅ Update fail bhi ho to bot online aur commands running rahengi.
+
+👇 *Update Now* press karein ya bot ko normal use karte rahain.`
+}
+
+async function sendUpdateNotice(socket, inbox, text, includeButton = false) {
+    const message = { text, contextInfo: channelContext() }
+    if (includeButton) {
+        message.buttons = [{
+            buttonId: 'hajii_update_now',
+            buttonText: { displayText: '♻️ Update Now' },
+            type: 1
+        }]
+        message.footer = 'HAJII-MD Auto Update'
+    }
+    try {
+        await socket.sendMessage(inbox, message)
+    } catch (error) {
+        // Older Baileys versions may reject legacy buttons; plain text must still arrive.
+        if (includeButton) {
+            await socket.sendMessage(inbox, { text, contextInfo: channelContext() }).catch(() => {})
+        }
+    }
+}
+
+async function notifyConnectedBotsOfUpdateAvailable(revision = '') {
+    const key = String(revision)
+    if (key === lastUpdateAvailableKey && Date.now() - lastUpdateAvailableAt < 30000) return
+    lastUpdateAvailableKey = key
+    lastUpdateAvailableAt = Date.now()
+    for (const socket of connectedSockets) {
+        const inbox = connectedInboxFor(socket)
+        if (!inbox || (socket.ws && socket.ws.readyState !== 1)) continue
+        await sendUpdateNotice(socket, inbox, updateAvailableNotice(revision), true)
+    }
+}
+
 async function notifyConnectedBotsOfUpdate(changedFiles = [], revision = '') {
     const files = [...new Set(changedFiles.filter(Boolean))].sort()
     const key = `${revision}|${files.join(',')}`
@@ -144,12 +189,10 @@ async function notifyConnectedBotsOfUpdate(changedFiles = [], revision = '') {
     for (const socket of connectedSockets) {
         const inbox = connectedInboxFor(socket)
         if (!inbox || (socket.ws && socket.ws.readyState !== 1)) continue
-        await socket.sendMessage(inbox, {
-            text: connectionNotice(inbox.split('@')[0], true, files),
-            contextInfo: channelContext()
-        }).catch(() => {})
+        await sendUpdateNotice(socket, inbox, connectionNotice(inbox.split('@')[0], true, files))
     }
 }
+global.hajiiNotifyUpdateAvailable = notifyConnectedBotsOfUpdateAvailable
 global.hajiiNotifyUpdate = notifyConnectedBotsOfUpdate
 
 const store = makeInMemoryStore ? makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) }) : null;

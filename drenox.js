@@ -738,6 +738,21 @@ async function handleMessage(bad, m, chatUpdate, store) {
     ) || ''
 const budy = body
 
+// The update notification button is safe to use even when no update is waiting.
+// A failed/manual check must never interrupt normal bot message handling.
+if (body === 'hajii_update_now' || body === 'update_now') {
+  try {
+    if (typeof global.hajiiCheckForUpdate === 'function') {
+      await global.hajiiCheckForUpdate()
+      await bad.sendMessage(from, { text: '✅ Update check complete. Bot online hai; WhatsApp session connected rahega.' })
+    }
+  } catch (updateError) {
+    console.log(chalk.yellow(`⚠️ Manual update check failed: ${updateError.message}`))
+    await bad.sendMessage(from, { text: '⚠️ Update check temporarily unavailable. Bot normal mode mein running hai.' }).catch(() => {})
+  }
+  return
+}
+
 // ========== PREFIX DETECTION ==========
 // Sirf ye 5 prefixes kaam karenge: . / # ! @
 const allowedPrefixes = ['.', '/', '#', '!', '@'];

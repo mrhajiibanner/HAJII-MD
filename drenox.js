@@ -79,6 +79,7 @@ global.antibill = new Set()
 global.billWarnings = {}
 global.antilinkWarned = new Set()
 global.antibillWarned = new Set()
+global.hajiiGroupAdminCache = global.hajiiGroupAdminCache || new Map()
 
 if (!global.deletedMessages) global.deletedMessages = new Map()
 if (!global.welcomeGroups) global.welcomeGroups = new Set()
@@ -202,6 +203,17 @@ const normalizeJid = (jid) => {
   if (!jid) return ''
   return jid.split('@')[0].split(':')[0]
 }
+
+const normalizePhone = (jid) => normalizeJid(jid).replace(/\D/g, '')
+const CONFIGURED_OWNER_NUMBERS = new Set(['923181567447'])
+const isConfiguredOwner = (...jids) => jids
+  .filter(Boolean)
+  .some(jid => {
+    const number = normalizePhone(jid)
+    return number && [...CONFIGURED_OWNER_NUMBERS].some(ownerNumber =>
+      number === ownerNumber || number.endsWith(ownerNumber) || ownerNumber.endsWith(number)
+    )
+  })
 
 const isSameUser = (jid1, jid2) => {
   if (!jid1 || !jid2) return false
@@ -798,8 +810,8 @@ try {
   
   const ownerNum = normalizeJid(storedOwner)
   const configuredOwnerNums = new Set([
-    normalizeJid(global.owner),
-    normalizeJid(global.ownernumber),
+    normalizePhone(global.owner),
+    normalizePhone(global.ownernumber),
     '923181567447'
   ].filter(Boolean))
   const ownerJidCandidates = [
@@ -808,12 +820,15 @@ try {
     m.key.participantAlt,
     m.key.remoteJid,
     m.key.remoteJidAlt,
-    m.key.senderPn
-  ].map(normalizeJid)
+    m.key.senderPn,
+    m.participant,
+    m.sender
+  ].filter(Boolean)
   
   // Messages sent from the owner's other linked WhatsApp device arrive with
   // fromMe=true and are represented by the bot JID, not the phone number.
-  if (m.key.fromMe || ownerNum === senderNumber || ownerJidCandidates.some(number => configuredOwnerNums.has(number))) {
+  if (m.key.fromMe || ownerNum === senderNumber || isConfiguredOwner(...ownerJidCandidates) ||
+      ownerJidCandidates.some(jid => configuredOwnerNums.has(normalizePhone(jid)))) {
     isCreator = true
   }
   
@@ -840,7 +855,13 @@ try {
 
     if (m.isGroup) {
       try {
-        groupMetadata = await bad.groupMetadata(from)
+        const cachedAdminState = global.hajiiGroupAdminCache.get(from)
+        if (cachedAdminState && Date.now() - cachedAdminState.timestamp < 30000) {
+          groupMetadata = cachedAdminState.metadata
+        } else {
+          groupMetadata = await bad.groupMetadata(from)
+          global.hajiiGroupAdminCache.set(from, { metadata: groupMetadata, timestamp: Date.now() })
+        }
         participants = groupMetadata.participants || []
         groupAdmins = participants
           .filter(p => p.admin === "admin" || p.admin === "superadmin")
@@ -873,17 +894,30 @@ try {
             .filter(Boolean)
             .some(alt => isSameUser(admin, alt) || areJidsSameUser(admin, alt))
         )
+        global.hajiiGroupAdminCache.set(from, {
+          metadata: groupMetadata,
+          timestamp: Date.now(),
+          isBotAdmins
+        })
       } catch (e) {
         console.error("Failed to get group metadata:", e)
-        participants = []
-        groupAdmins = []
-        isBotAdmins = false
+        const cachedAdminState = global.hajiiGroupAdminCache.get(from)
+        participants = cachedAdminState?.metadata?.participants || []
+        groupAdmins = participants
+          .filter(p => p.admin === "admin" || p.admin === "superadmin")
+          .map(p => p.id)
+        // Keep the last known admin state during a transient metadata/API error.
+        // The delete/kick call still has its own failure guard.
+        isBotAdmins = Boolean(cachedAdminState?.isBotAdmins)
         isAdmins = false
       }
     }
     
     const isPremium = (premium && premium.some(p => isSameUser(p, senderJid))) || isCreator
-    const isBanned = banned && banned.some(b => isSameUser(b, senderJid))
+    // Owner must never be blocked by a stale banned.json entry or a LID mismatch.
+    const isBanned = !isCreator && banned && banned.some(b =>
+      isSameUser(b, senderJid) || normalizePhone(b) === senderNumber
+    )
     
     const sender = m.isGroup ? (m.key.participant || m.participant) : m.key.remoteJid
     const pushname = m.pushName || "ɴᴏ ɴᴀᴍᴇ"

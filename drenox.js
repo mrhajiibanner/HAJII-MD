@@ -847,10 +847,17 @@ try {
             participant.phone_number
           ].filter(Boolean)
           return participantJids.some(participantJid =>
-            botJidCandidates.some(candidate => isSameUser(participantJid, candidate))
+            botJidCandidates.some(candidate =>
+              isSameUser(participantJid, candidate) || areJidsSameUser(participantJid, candidate)
+            )
           )
         })
-        isAdmins = groupAdmins.some(admin => isSameUser(admin, senderJid))
+        isAdmins = groupAdmins.some(admin =>
+          isSameUser(admin, senderJid) || areJidsSameUser(admin, senderJid) ||
+          [m.key.participantAlt, m.key.senderPn, m.key.remoteJidAlt]
+            .filter(Boolean)
+            .some(alt => isSameUser(admin, alt) || areJidsSameUser(admin, alt))
+        )
       } catch (e) {
         console.error("Failed to get group metadata:", e)
         participants = []
@@ -975,8 +982,10 @@ if (m.isGroup && !m.key.fromMe && !isAdmins && !isCreator) {
           ...m.key,
           remoteJid: m.chat,
           fromMe: false,
-          participant: m.key.participant || m.sender
+          participant: m.key.participant || m.key.participantAlt || m.sender
         };
+
+        console.log(chalk.yellow(`🔗 Anti-link triggered: ${alMode} in ${m.chat}; botAdmin=${isBotAdmins}`));
 
         // Only an admin bot can remove another member's message.
         if (isBotAdmins) {

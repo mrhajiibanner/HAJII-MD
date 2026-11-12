@@ -6954,42 +6954,19 @@ break;
 
 case 'owner':
 case 'contact': {
-    // Pehle yeh message bhejo
-    const msg = await bad.sendMessage(m.chat, { 
-        text: `✦ 📞 ᴺᵉᵉᵈ ᴴᵉˡᵖ? » ᶜᵒⁿᵗᵃᶜᵗ ᴹʸ ᴼʷⁿᵉʳs ✦`
+    const ownerChannel = 'https://whatsapp.com/channel/0029Vb5pzYl0VycOzcB4fU0B';
+    await bad.sendMessage(m.chat, {
+        text: `✦ 👑 𝗛𝗔𝗝𝗜𝗜-𝗠𝗗 𝗢𝗪𝗡𝗘𝗥 𝗖𝗛𝗔𝗡𝗡𝗘𝗟 ✦\n\n📢 Owner updates, help aur announcements ke liye channel join karein:\n${ownerChannel}`,
+        contextInfo: {
+            externalAdReply: {
+                title: '𝗛𝗔𝗝𝗜𝗜-𝗠𝗗 𝗢𝗪𝗡𝗘𝗥 𝗖𝗛𝗔𝗡𝗡𝗘𝗟',
+                body: 'Official updates and support',
+                sourceUrl: ownerChannel,
+                mediaType: 1,
+                renderLargerThumbnail: false
+            }
+        }
     }, { quoted: m });
-    
-    await sleep(1000);
-    
-    // 👑 Owner 1 - MR HAJII 
-    const vcard1 = 'BEGIN:VCARD\n' +
-                  'VERSION:3.0\n' +
-                  'FN: 𝐌𝐫 𝐇𝐚𝐣𝐢𝐢\n' +
-                  'TEL;type=CELL;type=VOICE;waid=923181567447:+923181567447\n' +
-                  'END:VCARD';
-    
-    await bad.sendMessage(m.chat, {
-        contacts: {
-            displayName: '𝗛𝗔𝗝𝗜𝗜-𝗠𝗗☠︎︎',
-            contacts: [{ vcard: vcard1 }]
-        }
-    }, { quoted: msg });
-    
-    await sleep(1000);
-    
-    // 👑 Owner 2 - ZAMAN
-    const vcard2 = 'BEGIN:VCARD\n' +
-                  'VERSION:3.0\n' +
-                  'FN: 𝐌𝐫 𝐇𝐚𝐣𝐢𝐢\n' +
-                  'TEL;type=CELL;type=VOICE;waid=923181567447:+923181567447\n' +
-                  'END:VCARD';
-    
-    await bad.sendMessage(m.chat, {
-        contacts: {
-            displayName: '𝗠𝗥 𝗛𝗔𝗝𝗜𝗜',
-            contacts: [{ vcard: vcard2 }]
-        }
-    }, { quoted: msg });
 }
 break;
 

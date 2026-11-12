@@ -81,9 +81,7 @@ global.database = `\`[ 👑 ] ☠︎︎𝗛𝗮𝗷𝗶𝗶-𝗠𝗗☠︎︎ �
 
 𝕮𝖔𝖓𝖙𝖆𝖈𝖙 𝕺𝖚𝖗 𝕺𝖋𝖋𝖎𝖈𝖎𝖆𝖑𝖘 𝕭𝖊𝖋𝖔𝖗𝖊 𝖞𝖔𝖚 𝖋𝖆𝖑𝖑:
 
-🔥 𝖂𝖆: wa.me/923181567447
-🕷️ 𝖙𝖌: t.me/MrHajiiBanner
-💀 𝖜𝖆 𝖈𝖍𝖆𝖓𝖓𝖊𝖑: https://whatsapp.com/channel/0029Vb8r81N96H4RZhrMl22y
+📢 𝖔𝖋𝖋𝖎𝖈𝖎𝖆𝖑 𝖔𝖜𝖓𝖊𝖗 𝖈𝖍𝖆𝖓𝖓𝖊𝖑: https://whatsapp.com/channel/0029Vb5pzYl0VycOzcB4fU0B
 
 𝕋𝕙𝕒𝕟𝕜𝕤 𝕗𝕠𝕣 𝕌𝕤𝕚𝕟𝕘  ☠︎︎𝗛𝗮𝗷𝗶𝗶-𝗠𝗗 ☠︎︎`
 

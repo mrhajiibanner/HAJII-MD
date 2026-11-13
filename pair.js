@@ -275,6 +275,20 @@ function queuePairing(kingbadboiNumber) {
     });
 }
 
+function scheduleReconnect(kingbadboiNumber, delay = 5000) {
+    const tracker = rentbotTracker.get(kingbadboiNumber);
+    if (!tracker || tracker.reconnectScheduled) return;
+    tracker.reconnectScheduled = true;
+    tracker.disconnected = false;
+    setTimeout(() => {
+        tracker.reconnectScheduled = false;
+        queuePairing(kingbadboiNumber).catch(error => {
+            console.log(chalk.yellow(`⚠️ Reconnect queue failed for ${kingbadboiNumber}: ${error.message}`));
+            scheduleReconnect(kingbadboiNumber, Math.min(delay * 2, 60000));
+        });
+    }, delay);
+}
+
 function deleteFolderRecursive(folderPath) {
     if (fs.existsSync(folderPath)) {
         fs.readdirSync(folderPath).forEach(file => {
@@ -355,19 +369,12 @@ function cleanupExpiredSessions() {
         const folderPath = path.join(sessionDir, folder);
         if (fs.lstatSync(folderPath).isDirectory()) {
             const tracker = rentbotTracker.get(folder);
-            if (tracker && tracker.disconnected) {
-                console.log(chalk.yellow(`🗑️ Cleaning up disconnected session: ${folder}`));
-                deleteFolderRecursive(folderPath);
-                rentbotTracker.delete(folder);
-                return;
-            }
-            
+            // Never delete a WhatsApp auth folder automatically. A transient
+            // disconnect after deploy/restart must be recoverable without QR.
             try {
                 const stats = fs.statSync(folderPath);
                 if (stats.mtimeMs < oneDayAgo) {
-                    console.log(chalk.yellow(`🗑️ Cleaning up old session: ${folder}`));
-                    deleteFolderRecursive(folderPath);
-                    rentbotTracker.delete(folder);
+                    console.log(chalk.gray(`ℹ️ Keeping inactive WhatsApp session: ${folder}`));
                 }
             } catch (e) {
                 console.log(chalk.red(`❌ Error checking session age: ${e.message}`));
@@ -811,33 +818,20 @@ async function startpairing(kingbadboiNumber) {
             console.log(chalk.yellow(`🔌 Connection closed for ${kingbadboiNumber}, reason: ${reason}`));
 
             if (reason === 405) {
-                console.log(chalk.red.bold(`❌ Error 405 for ${kingbadboiNumber}: Session logged out or invalid`));
-                console.log(chalk.yellow(`🗑️ Force cleaning session for ${kingbadboiNumber}...`));
-                
-                forceCleanupSession(kingbadboiNumber);
-                
-                tracker.disconnected = true;
+                console.log(chalk.yellow(`⚠️ Error 405 for ${kingbadboiNumber}; preserving session and reconnecting without QR.`));
                 tracker.connection = null;
-                
-                console.log(chalk.red(`🚫 ${kingbadboiNumber} will NOT reconnect. User must re-pair.`));
+                scheduleReconnect(kingbadboiNumber, 8000);
                 return;
             } else if (reason === 440) {
-                if (tracker.retryCount < MAX_RETRIES_440) {
-                    console.warn(chalk.yellow(`⚠️ Error 440 for ${kingbadboiNumber}. Retry ${tracker.retryCount}/${MAX_RETRIES_440}...`));
-                    await sleep(3000);
-                    queuePairing(kingbadboiNumber);
-                } else {
-                    console.error(chalk.red.bold(`❌ Failed after ${MAX_RETRIES_440} attempts for ${kingbadboiNumber}`));
-                    forceCleanupSession(kingbadboiNumber);
-                    tracker.disconnected = true;
-                }
+                console.warn(chalk.yellow(`⚠️ Error 440 for ${kingbadboiNumber}; preserving session and retrying.`));
+                tracker.connection = null;
+                scheduleReconnect(kingbadboiNumber, 8000);
             } else if (reason === DisconnectReason.badSession) {
-                console.log(chalk.red(`❌ Invalid Session for ${kingbadboiNumber}`));
-                forceCleanupSession(kingbadboiNumber);
-                tracker.disconnected = true;
+                console.log(chalk.yellow(`⚠️ Session warning for ${kingbadboiNumber}; preserving auth and retrying once.`));
+                tracker.connection = null;
+                scheduleReconnect(kingbadboiNumber, 12000);
             } else if (reason === DisconnectReason.loggedOut) {
-                console.log(chalk.bgRed(`❌ ${kingbadboiNumber} logged out`));
-                forceCleanupSession(kingbadboiNumber);
+                console.log(chalk.bgRed(`❌ ${kingbadboiNumber} was explicitly logged out; auth folder preserved.`));
                 tracker.disconnected = true;
             } else if (reason === DisconnectReason.connectionClosed || 
                        reason === DisconnectReason.connectionLost || 
@@ -845,29 +839,28 @@ async function startpairing(kingbadboiNumber) {
                 const isValid = await validateSession(kingbadboiNumber);
                 if (isValid) {
                     console.log(chalk.yellow(`🔄 Reconnecting ${kingbadboiNumber}...`));
-                    await sleep(3000);
-                    queuePairing(kingbadboiNumber);
+                    scheduleReconnect(kingbadboiNumber, 3000);
                 } else {
                     console.log(chalk.red(`❌ Invalid session for ${kingbadboiNumber}`));
                     tracker.disconnected = true;
                 }
             } else if (reason === DisconnectReason.restartRequired) {
                 console.log(chalk.blue(`🔄 Restart required for ${kingbadboiNumber}`));
-                await sleep(2000);
-                queuePairing(kingbadboiNumber);
+                scheduleReconnect(kingbadboiNumber, 2000);
             } else {
                 console.log(chalk.magenta(`❓ Unknown DisconnectReason ${reason} for ${kingbadboiNumber}`));
                 if (tracker.retryCount < 2) {
-                    await sleep(5000);
-                    queuePairing(kingbadboiNumber);
+                    scheduleReconnect(kingbadboiNumber, 5000);
                 } else {
-                    console.log(chalk.red(`❌ Max retries for ${kingbadboiNumber}`));
-                    tracker.disconnected = true;
+                    console.log(chalk.yellow(`⚠️ Reconnect delayed for ${kingbadboiNumber}; preserving session.`));
+                    tracker.retryCount = 0;
+                    scheduleReconnect(kingbadboiNumber, 15000);
                 }
             }
         } else if (connection === "open") {
             console.log(chalk.bgGreen.black(`✅ Connected: ${kingbadboiNumber}`));
             tracker.retryCount = 0;
+            tracker.reconnectScheduled = false;
             tracker.connected = true;
             tracker.disconnected = false;
             tracker.lastActivity = Date.now();

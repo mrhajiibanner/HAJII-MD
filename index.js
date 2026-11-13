@@ -27,7 +27,9 @@ const autoLoadPairs = async () => {
     const pairedUsers = fs.readdirSync(PAIRING_DIR, { withFileTypes: true })
         .filter(dirent => dirent.isDirectory())
         .map(dirent => dirent.name)
-        .filter(name => name.endsWith('@s.whatsapp.net'));
+        // Session folder names can be phone JIDs, LIDs, or legacy phone numbers.
+        // Do not restrict startup recovery to the old @s.whatsapp.net format.
+        .filter(name => name !== 'pairing.json' && !name.startsWith('.'));
 
     if (pairedUsers.length === 0) {
         console.log(chalk.yellow('ℹ️  No paired users found.'));

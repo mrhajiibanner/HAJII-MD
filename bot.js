@@ -15,7 +15,13 @@ const { autoLoadPairs } = require('./autoload');
 const pairingModule = require('./pair');
 const axios = require("axios")
 
-const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+const pollingOptions = {
+  interval: 1000,
+  params: { timeout: 30 }
+};
+const bot = new TelegramBot(BOT_TOKEN, { polling: pollingOptions });
+let pollingRecoveryScheduled = false;
+let pollingRecoveryAttempts = 0;
 const adminFilePath = path.join(__dirname, 'kingbadboitimewisher', 'admin.json');
 let adminIDs = [];
 
@@ -485,7 +491,31 @@ bot.onText(/\/unpair(?:\s+(.+))?/, async (msg, match) => {
 
 // ========== POLLING ERROR HANDLER ==========
 bot.on('polling_error', (error) => {
-  console.error('Polling error:', error);
+  const errorCode = error?.response?.body?.error_code || error?.code;
+  const description = error?.response?.body?.description || error?.message || String(error);
+  if (Number(errorCode) === 409 || /terminated by other getupdates/i.test(description)) {
+    if (pollingRecoveryScheduled) return;
+    pollingRecoveryScheduled = true;
+    pollingRecoveryAttempts++;
+    const delay = Math.min(60000, 10000 * pollingRecoveryAttempts);
+    console.warn(`⚠️ Telegram polling conflict detected. Retrying in ${Math.round(delay / 1000)}s without stopping WhatsApp sessions.`);
+    Promise.resolve(bot.stopPolling({ cancel: true }))
+      .catch(() => {})
+      .finally(() => setTimeout(() => {
+        bot.startPolling(pollingOptions)
+          .then(() => {
+            pollingRecoveryScheduled = false;
+            pollingRecoveryAttempts = 0;
+            console.log('✅ Telegram polling recovered.');
+          })
+          .catch(retryError => {
+            pollingRecoveryScheduled = false;
+            console.warn(`⚠️ Telegram polling retry failed: ${retryError.message}`);
+          });
+      }, delay));
+    return;
+  }
+  console.error('Polling error:', description);
 });
 
 // ========== BOT START ==========

@@ -1,2 +1,7 @@
 token.js
 .env
+node_modules/
+allfunc/botmode.txt
+allfunc/botowner.txt
+database/antihijack.json
+database/protectedAdmins.json
